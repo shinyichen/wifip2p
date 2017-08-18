@@ -49,6 +49,7 @@ namespace wifiptp
             {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
                 // Discover was called and found
+                Toast.MakeText(activity, "Request peers", ToastLength.Short).Show();
                 if (manager != null)
                     manager.RequestPeers(channel, (IPeerListListener)activity);
             }

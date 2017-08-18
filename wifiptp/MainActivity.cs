@@ -35,6 +35,7 @@ namespace wifiptp
 				discover();
 			};
 
+            // TODO this should be in a service so it stays running
 			wifiManager = (WifiP2pManager)GetSystemService(Context.WifiP2pService);
 			channel = wifiManager.Initialize(this, MainLooper, null); //Registers the application with the Wi-Fi framework.
 			wifiBroadcastReceiver = new WiFiDirectBroadcastReceiver(wifiManager, channel, this);
@@ -60,26 +61,30 @@ namespace wifiptp
 
 		private void discover()
 		{
-			// discover peers
-			wifiManager.DiscoverPeers(channel, this);
+            // discover peers
+            if (wifiManager != null)
+			    wifiManager.DiscoverPeers(channel, this);
 		}
 
 		// IActionListener: discover peers fail
 		public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
 		{
-
+            searchButton.Enabled = true;
+            Toast.MakeText(this, "discover peers failed!", ToastLength.Short).Show();
 		}
 
 		// IActionListener: discover peers success
 		public void OnSuccess()
 		{
-
+            Toast.MakeText(this, "discover peers successful, requesting peers", ToastLength.Short).Show();
+            wifiManager.RequestPeers(channel, this);
 		}
 
 		// IPeerListListener: peers found
 		public void OnPeersAvailable(WifiP2pDeviceList peers)
 		{
-			searchButton.Enabled = true;
+            Toast.MakeText(this, "Found " + peers.DeviceList.Count + " peers", ToastLength.Short).Show();
+            searchButton.Enabled = true;
 			devices = peers.DeviceList.ToList();
             int c = 0;
 
