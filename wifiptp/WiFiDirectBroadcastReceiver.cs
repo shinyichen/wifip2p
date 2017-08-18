@@ -15,7 +15,7 @@ using static Android.Net.Wifi.P2p.WifiP2pManager;
 
 namespace wifiptp
 {
-    [BroadcastReceiver(Enabled = true, Exported = false)]
+    //[BroadcastReceiver(Enabled = true, Exported = false)]
     public class WiFiDirectBroadcastReceiver : BroadcastReceiver
     {
         private WifiP2pManager manager;

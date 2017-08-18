@@ -36,7 +36,7 @@ namespace wifiptp
 			};
 
 			wifiManager = (WifiP2pManager)GetSystemService(Context.WifiP2pService);
-			channel = wifiManager.Initialize(this, MainLooper, null);
+			channel = wifiManager.Initialize(this, MainLooper, null); //Registers the application with the Wi-Fi framework.
 			wifiBroadcastReceiver = new WiFiDirectBroadcastReceiver(wifiManager, channel, this);
 
 			intentFilter = new IntentFilter();
@@ -81,11 +81,13 @@ namespace wifiptp
 		{
 			searchButton.Enabled = true;
 			devices = peers.DeviceList.ToList();
+            int c = 0;
 
 			// TODO show devices in list
 			foreach (WifiP2pDevice device in devices)
 			{
-				Log.Info("WiFiActivity", "Device: " + device.DeviceAddress);
+                Log.Info("WiFiActivity", "Device " + c + ": " + device.DeviceAddress + " " + device.DeviceName + " " + device.PrimaryDeviceType);
+                c++;
 			}
 		}
 	}
