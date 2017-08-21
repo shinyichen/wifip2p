@@ -21,7 +21,6 @@ namespace wifiptp
 
 		private IntentFilter intentFilter;
         private List<WifiP2pDevice>devices = new List<WifiP2pDevice>();
-        private List<string> deviceAddress = new List<string>();
 
 		private Button searchButton;
 
@@ -50,9 +49,17 @@ namespace wifiptp
 			intentFilter.AddAction(WifiP2pManager.WifiP2pConnectionChangedAction);
 			intentFilter.AddAction(WifiP2pManager.WifiP2pThisDeviceChangedAction);
 
-            adapter = new ArrayAdapter(this, Resource.Layout.ListItem, deviceAddress);
+            adapter = new ArrayAdapter(this, Resource.Layout.ListItem, devices);
+            adapter.SetNotifyOnChange(true);
             listView = FindViewById<ListView>(Resource.Id.deviceListView);
             listView.Adapter = adapter;
+
+            listView.ItemClick += (sender, e) =>
+            {
+                int position = e.Position;
+                WifiP2pDevice device = (WifiP2pDevice)adapter.GetItem(position);
+                Log.Info("MainActivity", device.ToString());
+            };
 		}
 
 		protected override void OnResume()
@@ -91,21 +98,19 @@ namespace wifiptp
 		// IPeerListListener: peers found
 		public void OnPeersAvailable(WifiP2pDeviceList peers)
 		{
+            
             Toast.MakeText(this, "Found " + peers.DeviceList.Count + " peers", ToastLength.Short).Show();
             searchButton.Enabled = true;
-            devices.Clear();
+            adapter.Clear();
             int c = 1;
 
 			// TODO show devices in list
 			foreach (WifiP2pDevice device in peers.DeviceList.ToList())
 			{
-                devices.Add(device);
-                deviceAddress.Add(device.DeviceAddress.ToString());
+                adapter.Add(device);
                 Log.Info("WiFiActivity", "Device " + c + ": " + device.DeviceAddress + " " + device.DeviceName + " " + device.PrimaryDeviceType);
                 c++;
 			}
-
-            adapter.NotifyDataSetChanged();
 		}
 	}
 }
