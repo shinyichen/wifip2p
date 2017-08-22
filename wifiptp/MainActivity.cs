@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Android.Runtime;
 using System.Linq;
 using Android.Util;
+using System;
 
 namespace wifiptp
 {
@@ -59,6 +60,10 @@ namespace wifiptp
                 int position = e.Position;
                 WifiP2pDevice device = (WifiP2pDevice)adapter.GetItem(position);
                 Log.Info("MainActivity", device.ToString());
+
+                WifiP2pConfig config = new WifiP2pConfig();
+                config.DeviceAddress = device.DeviceAddress;
+                wifiManager.Connect(channel, config, new ConnectedListener());
             };
 		}
 
@@ -112,6 +117,20 @@ namespace wifiptp
                 c++;
 			}
 		}
-	}
+
+        public class ConnectedListener : Java.Lang.Object, IActionListener
+        {
+
+            void IActionListener.OnFailure(WifiP2pFailureReason reason)
+            {
+                Log.Info("WifiActivity", "connection failed: " + reason.ToString());
+            }
+
+            void IActionListener.OnSuccess()
+            {
+                Log.Info("WifiActivity", "connection established");
+            }
+        }
+    }
 }
 
