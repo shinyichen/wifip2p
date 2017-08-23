@@ -6,12 +6,16 @@ using System.Text;
 
 using Android.App;
 using Android.Content;
+using Android.Net;
 using Android.Net.Wifi.P2p;
 using Android.OS;
 using Android.Runtime;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
+using Java.Net;
 using static Android.Net.Wifi.P2p.WifiP2pManager;
+using static wifiptp.MainActivity;
 
 namespace wifiptp
 {
@@ -55,7 +59,15 @@ namespace wifiptp
             }
             else if (action.Equals(WifiP2pManager.WifiP2pConnectionChangedAction))
             {
-                // Respond to new connection or disconnections
+                // connection established, start file server task
+                NetworkInfo info = (NetworkInfo)intent.GetParcelableExtra(WifiP2pManager.ExtraNetworkInfo);
+                if (info.IsConnected)
+                {
+					Log.Info("WifiDirectBroadcastReceiver", "connection established, requesting connection info");
+					manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel));
+                } else {
+                    Log.Info("WifiDirectBroadcastReceiver", "disconnected");
+                }
             }
             else if (action.Equals(WifiP2pManager.WifiP2pThisDeviceChangedAction))
             {
