@@ -72,6 +72,8 @@ namespace wifiptp
                 //wifiManager.StopPeerDiscovery(channel, new DiscoveryCanceledListener(this, wifiManager, device, channel));
                 //wifiManager.CreateGroup(channel, new GroupCreatedListener(this, wifiManager, device, channel));
             };
+
+            discover();
 		}
 
 		protected override void OnResume()
