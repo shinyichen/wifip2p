@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>wifiptp</RootNamespace>
     <AssemblyName>wifiptp</AssemblyName>
-    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v7.1</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
@@ -51,7 +51,6 @@
     <Compile Include="WiFiDirectBroadcastReceiver.cs" />
     <Compile Include="FileServerAsyncTask.cs" />
     <Compile Include="ClientAsyncTask.cs" />
-    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

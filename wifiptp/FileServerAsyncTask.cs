@@ -1,13 +1,9 @@
-﻿
-using System.IO;
-using System.Net;
+﻿using System.IO;
 using System.Text;
 using Android.Content;
-using Android.Net;
 using Android.Net.Wifi.P2p;
 using Android.OS;
 using Android.Util;
-using Java.IO;
 using Java.Lang;
 using Java.Net;
 using static Android.Net.Wifi.P2p.WifiP2pManager;

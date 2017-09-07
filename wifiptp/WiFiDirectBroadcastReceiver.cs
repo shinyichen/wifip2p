@@ -1,19 +1,8 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Android.App;
-using Android.Content;
+﻿using Android.Content;
 using Android.Net;
 using Android.Net.Wifi.P2p;
-using Android.OS;
-using Android.Runtime;
 using Android.Util;
-using Android.Views;
 using Android.Widget;
-using Java.Net;
 using static Android.Net.Wifi.P2p.WifiP2pManager;
 using static wifiptp.MainActivity;
 
@@ -35,7 +24,7 @@ namespace wifiptp
 
         public override void OnReceive(Context context, Intent intent)
         {
-            //Toast.MakeText(context, "Received intent!", ToastLength.Short).Show();
+            
             string action = intent.Action;
             if (action.Equals(WifiP2pManager.WifiP2pStateChangedAction))
             {

@@ -8,9 +8,6 @@ using System.Collections.Generic;
 using Android.Runtime;
 using System.Linq;
 using Android.Util;
-using System;
-using Java.Net;
-using System.IO;
 
 namespace wifiptp
 {
@@ -69,8 +66,6 @@ namespace wifiptp
                 config.DeviceAddress = device.DeviceAddress;
                 config.GroupOwnerIntent = 15;
                 wifiManager.Connect(channel, config, null);
-                //wifiManager.StopPeerDiscovery(channel, new DiscoveryCanceledListener(this, wifiManager, device, channel));
-                //wifiManager.CreateGroup(channel, new GroupCreatedListener(this, wifiManager, device, channel));
             };
 
             discover();
@@ -109,117 +104,25 @@ namespace wifiptp
             wifiManager.RequestPeers(channel, this);
 		}
 
-		// IPeerListListener: peers found
-		public void OnPeersAvailable(WifiP2pDeviceList peers)
-		{
-            
+        // IPeerListListener: peers found
+        public void OnPeersAvailable(WifiP2pDeviceList peers)
+        {
+
             Toast.MakeText(this, "Found " + peers.DeviceList.Count + " peers", ToastLength.Short).Show();
             searchButton.Enabled = true;
             adapter.Clear();
             int c = 1;
 
-			// TODO show devices in list
-			foreach (WifiP2pDevice d in peers.DeviceList.ToList())
-			{
+            // show devices in list
+            foreach (WifiP2pDevice d in peers.DeviceList.ToList())
+            {
                 adapter.Add(d);
                 Log.Info("WiFiActivity", "Device " + c + ": " + d.DeviceAddress + " " + d.DeviceName + " " + d.PrimaryDeviceType);
                 c++;
-			}
-		}
-
-        /* dicovery canceled to start group creation */
-        public class DiscoveryCanceledListener : Java.Lang.Object, IActionListener
-        {
-			private Context context;
-
-			private WifiP2pManager manager;
-
-			private WifiP2pDevice device; // device the group creator wants to to connect to
-
-			private Channel channel;
-
-            public DiscoveryCanceledListener(Context context, WifiP2pManager manager, WifiP2pDevice device, Channel channel)
-            {
-                this.context = context;
-                this.manager = manager;
-                this.device = device;
-                this.channel = channel;
-            }
-
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                Log.Info("Main", "Discovery cancel failed: " + reason.ToString());
-            }
-
-            public void OnSuccess()
-            {
-                Log.Info("Main", "Discovery successfully canceled");
-				manager.CreateGroup(channel, new GroupCreatedListener(context, manager, device, channel));
             }
         }
-
-        /* Group created, establish connection */
-        public class GroupCreatedListener : Java.Lang.Object, IActionListener
-		{
-
-            private Context context;
-
-			private WifiP2pManager manager;
-
-			private WifiP2pDevice device; // device the group creator wants to to connect to
-
-            private Channel channel;
-
-            public GroupCreatedListener(Context context, WifiP2pManager manager, WifiP2pDevice device, Channel channel)
-			{
-                this.context = context;
-				this.manager = manager;
-				this.device = device;
-                this.channel = channel;
-			}
-			public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-			{
-				Log.Info("Main", "Create group failed: " + reason.ToString());
-			}
-
-			public void OnSuccess()
-			{
-				Log.Info("Main", "Group Created, now establishing connection to device " + device.DeviceName);
-				WifiP2pConfig config = new WifiP2pConfig();
-				config.DeviceAddress = device.DeviceAddress;
-                manager.Connect(channel, config, new ConnectedListener(context, manager, channel));
-
-			}
-		}
-
-        /* connection started by this device has been established */
-        public class ConnectedListener : Java.Lang.Object, IActionListener
-        {
-
-            private Context context;
-
-            private WifiP2pManager manager;
-
-            private Channel channel;
-
-            public ConnectedListener(Context context, WifiP2pManager manager, Channel channel) {
-                this.context = context;
-                this.manager = manager;
-                this.channel = channel;    
-            }
-            void IActionListener.OnFailure(WifiP2pFailureReason reason)
-            {
-                Log.Info("Main", "connection failed: " + reason.ToString());
-            }
-
-            void IActionListener.OnSuccess()
-            {
-                // I made a connection with another device
-                Log.Info("Main", "connection established, requesting connection info");
-                manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel));
-            }
-        }
-
+ 
+        // start server and client tasks only when connection info is available
         public class ConnectionInfoAvailableListener : Java.Lang.Object, IConnectionInfoListener {
 
             private Context context;
