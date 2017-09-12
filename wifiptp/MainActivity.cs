@@ -108,6 +108,7 @@ namespace wifiptp
         public void OnPeersAvailable(WifiP2pDeviceList peers)
         {
 
+            // TODO filter only mobile devices with this app (service?)
             Toast.MakeText(this, "Found " + peers.DeviceList.Count + " peers", ToastLength.Short).Show();
             searchButton.Enabled = true;
             adapter.Clear();
@@ -123,6 +124,10 @@ namespace wifiptp
         }
  
         // start server and client tasks only when connection info is available
+        // TODO we only want to start file transfer if connection was established by user manually
+        // TODO handle if click on device and was already connected
+        // TODO handle if click on device while another connection is running
+
         public class ConnectionInfoAvailableListener : Java.Lang.Object, IConnectionInfoListener {
 
             private Context context;

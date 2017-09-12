@@ -83,7 +83,7 @@ namespace wifiptp
 			int totalBytes = 0;
 			int bytesRead = 0;
 
-            // TODO need to wait till client finish sending
+
             // TODO could be in infinite loop, use time out
             while (size > 0)
 			{
