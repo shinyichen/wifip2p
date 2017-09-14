@@ -15,13 +15,15 @@ namespace wifiptp
         private Context context;
         WifiP2pManager manager;
         Channel channel;
+        int port;
         byte[] buf = new byte[1024];
 
-        public FileServerAsyncTask(Context context, WifiP2pManager manager, Channel channel)
+        public FileServerAsyncTask(Context context, WifiP2pManager manager, Channel channel, int port)
         {
             this.context = context;
             this.channel = channel;
             this.manager = manager;
+            this.port = port;
         }
 
         protected override Object DoInBackground(params Object[] @params)
@@ -30,7 +32,7 @@ namespace wifiptp
             Log.Info("Server", "Starting server service");
 
             // wait for client connection
-            ServerSocket serverSocket = new ServerSocket(8888);
+            ServerSocket serverSocket = new ServerSocket(port);
             Socket client = serverSocket.Accept();
 
             // TODO move this to service, if no connection not made in certain time, kill the service

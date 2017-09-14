@@ -42,9 +42,9 @@ namespace wifiptp
             {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
                 // Discover was called and found
-                Toast.MakeText(activity, "Request peers", ToastLength.Short).Show();
-                if (manager != null)
-                    manager.RequestPeers(channel, (IPeerListListener)activity);
+                //Toast.MakeText(activity, "Request peers", ToastLength.Short).Show();
+                //if (manager != null)
+                    //manager.RequestPeers(channel, (IPeerListListener)activity);
             }
             else if (action.Equals(WifiP2pManager.WifiP2pConnectionChangedAction))
             {
@@ -53,7 +53,7 @@ namespace wifiptp
                 if (info.IsConnected)
                 {
 					Log.Info("WifiDirectBroadcastReceiver", "connection established, requesting connection info");
-					manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel));
+                    manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel, MainActivity.port));
                 } else {
                     Log.Info("WifiDirectBroadcastReceiver", "disconnected");
                 }

@@ -35,10 +35,10 @@ namespace wifiptp
             Log.Info("Client", "Starting client service");
 
             // connect to server
-            Log.Info("Client", "Connecting to server port 8888");
+            Log.Info("Client", "Connecting to server");
             Socket socket = new Socket();
             socket.Bind(null);
-            InetSocketAddress sa = new InetSocketAddress(ip, 8888);
+            InetSocketAddress sa = new InetSocketAddress(ip, MainActivity.port);
             try
             {
                 socket.Connect(sa, 2000);
