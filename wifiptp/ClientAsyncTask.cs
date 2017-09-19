@@ -19,14 +19,17 @@ namespace wifiptp
 
         private Channel channel;
 
+        private ITaskCompleted taskCompletedListener;
+
         private byte[] buf = new byte[1024];
 
-        public ClientAsyncTask(Context context, InetAddress ip, WifiP2pManager manager, Channel channel)
+        public ClientAsyncTask(Context context, InetAddress ip, WifiP2pManager manager, Channel channel, ITaskCompleted taskCompletedListener)
         {
             this.manager = manager;
             this.channel = channel;
             this.context = context;
             this.ip = ip;
+            this.taskCompletedListener = taskCompletedListener;
         }
 
         protected override Java.Lang.Object DoInBackground(params Java.Lang.Object[] @params)
@@ -112,6 +115,11 @@ namespace wifiptp
                 return "failed";
             }
 
+        }
+
+        protected override void OnPostExecute(Java.Lang.Object result)
+        {
+            taskCompletedListener.OnTaskCompleted();
         }
     }
 }

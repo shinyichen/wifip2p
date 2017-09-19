@@ -16,14 +16,18 @@ namespace wifiptp
         WifiP2pManager manager;
         Channel channel;
         int port;
+
+        private ITaskCompleted taskCompletedListener;
+
         byte[] buf = new byte[1024];
 
-        public FileServerAsyncTask(Context context, WifiP2pManager manager, Channel channel, int port)
+        public FileServerAsyncTask(Context context, WifiP2pManager manager, Channel channel, int port, ITaskCompleted taskCompletedListener)
         {
             this.context = context;
             this.channel = channel;
             this.manager = manager;
             this.port = port;
+            this.taskCompletedListener = taskCompletedListener;
         }
 
         protected override Object DoInBackground(params Object[] @params)
@@ -102,5 +106,10 @@ namespace wifiptp
 			}
 			return totalBytes;
 		}
+
+        protected override void OnPostExecute(Object result)
+        {
+            taskCompletedListener.OnTaskCompleted();
+        }
     }
 }

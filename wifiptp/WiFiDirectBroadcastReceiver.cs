@@ -53,7 +53,8 @@ namespace wifiptp
                 if (info.IsConnected)
                 {
 					Log.Info("WifiDirectBroadcastReceiver", "connection established, requesting connection info");
-                    manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel, MainActivity.port));
+                    //manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel, MainActivity.port));
+                    manager.RequestConnectionInfo(channel, activity);
                 } else {
                     Log.Info("WifiDirectBroadcastReceiver", "disconnected");
                 }
