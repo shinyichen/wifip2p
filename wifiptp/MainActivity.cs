@@ -91,6 +91,8 @@ namespace wifiptp
 		{
 			base.OnResume();
 			RegisterReceiver(wifiBroadcastReceiver, intentFilter);
+
+            // TODO need to call discover?
 		}
 
 		protected override void OnPause()
