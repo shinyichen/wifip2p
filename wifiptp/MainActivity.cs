@@ -105,7 +105,7 @@ namespace wifiptp
         {
             if (wifiManager != null && channel != null)
             {
-                wifiManager.RemoveGroup(channel, new MainActivity.GroupRemovedListener());
+                wifiManager.RemoveGroup(channel, new GroupRemovedListener());
             }
             base.OnStop();
         }
@@ -116,21 +116,50 @@ namespace wifiptp
 		{
 
 			searchButton.Enabled = false;
-
-			if (serviceRequest != null)
-                wifiManager.RemoveServiceRequest(channel, serviceRequest, null);
-            
             adapter.Clear();
 
-            // set service response listeners
-            wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener(adapter), new RecordAvailableListener(adapter));
+			// set service response listeners
+			wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener(adapter), new RecordAvailableListener(adapter));
 
-            // add service discovery request
-            serviceRequest = WifiP2pDnsSdServiceRequest.NewInstance();
-            wifiManager.AddServiceRequest(channel, serviceRequest, new AddServiceRequestListener());
+            wifiManager.ClearServiceRequests(channel, new ClearServiceRequestListener(() => {
 
-            // discover service
-            wifiManager.DiscoverServices(channel, new DiscoverServicesListener(searchButton));
+                // clear service request successful
+                Log.Info(id, "ClearServiceRequests successful");
+
+				// add service discovery request
+				serviceRequest = WifiP2pDnsSdServiceRequest.NewInstance();
+                wifiManager.AddServiceRequest(channel, serviceRequest, new AddServiceRequestListener(() => {
+
+                    // add service request successful
+                    Log.Info(id, "AddServiceRequest successful");
+
+					// discover service
+                    wifiManager.DiscoverServices(channel, new DiscoverServicesListener(() => {
+                        // discovery successful
+                        searchButton.Enabled = true;
+                        Log.Info(id, "DiscoverServices successful");
+
+                    }, (string reason) => {
+                        // discovery failed
+                        searchButton.Enabled = true;
+                        Log.Info(id, "DiscoverServices failed: " + reason.ToString());
+                    }));
+
+                }, (string reason) => {
+                    // add service request failed
+					Log.Info(id, "AddServiceRequest failed: " + reason.ToString());
+                }));
+            }, (string reason) => {
+				// service request cleared
+				Log.Info(id, "ClearServiceRequests failed: " + reason.ToString());
+            }));
+            
+
+
+
+
+
+
 		}
 
         // this callback is called when connection is made and connection info is available
@@ -167,6 +196,30 @@ namespace wifiptp
         {
             // restart discovery
             discover();
+        }
+
+        // responds to manager.ClearServiceRequests
+        public class ClearServiceRequestListener : Java.Lang.Object, IActionListener
+        {
+            private readonly Action success;
+
+            private readonly Action<string> failure;
+
+            public ClearServiceRequestListener(Action success, Action<string> failure)
+            {
+                this.success = success;
+                this.failure = failure;
+            }
+
+            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
+            {
+                failure(reason.ToString());
+            }
+
+            public void OnSuccess()
+            {
+                success();
+            }
         }
 
         public class ServiceAddedListener : Java.Lang.Object, IActionListener
@@ -218,35 +271,47 @@ namespace wifiptp
 
         public class AddServiceRequestListener : Java.Lang.Object, IActionListener
         {
+
+            private readonly Action success;
+
+            private readonly Action<string> failure;
+
+            public AddServiceRequestListener(Action success, Action<string> failure)
+            {
+                this.success = success;
+                this.failure = failure;
+            }
+
             public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
             {
-                Log.Info(id, "AddServiceRequest failed: " + reason.ToString());
+                failure(reason.ToString());
             }
 
             public void OnSuccess()
             {
-                Log.Info(id, "AddServiceRequest successful");
+                success();
             }
         }
 
 		public class DiscoverServicesListener : Java.Lang.Object, IActionListener
 		{
-            private Button searchButton;
+            private readonly Action success;
 
-            public DiscoverServicesListener(Button searchButton) {
-                this.searchButton = searchButton;   
+            private readonly Action<string> failure;
+
+            public DiscoverServicesListener(Action success, Action<string> failure) {
+                this.success = success;
+                this.failure = failure;
             }
 
 			public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
 			{
-                searchButton.Enabled = true;
-				Log.Info(id, "DiscoverServices failed: " + reason.ToString());
+                failure(reason.ToString());
 			}
 
 			public void OnSuccess()
 			{
-                searchButton.Enabled = true;
-				Log.Info(id, "DiscoverServices successful");
+                success();
 			}
 		}
 
