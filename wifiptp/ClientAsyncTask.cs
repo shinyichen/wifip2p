@@ -36,6 +36,8 @@ namespace wifiptp
         {
 
             Log.Info("Client", "Starting client service");
+            Stream inputStream = null, outputStream = null;
+            FileStream fileStream = null;
 
             // connect to server
             Log.Info("Client", "Connecting to server");
@@ -46,12 +48,12 @@ namespace wifiptp
             {
                 socket.Connect(sa, 2000);
 
-                Stream inputStream = socket.InputStream;
-				Stream outputStream = socket.OutputStream;
+                inputStream = socket.InputStream;
+				outputStream = socket.OutputStream;
 
 				// prepare image to send
                 Java.IO.File imageDir = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryPictures);
-				FileStream fileStream = new FileStream(imageDir.AbsolutePath + "/image.jpg", FileMode.Open, FileAccess.Read);
+				fileStream = new FileStream(imageDir.AbsolutePath + "/image.jpg", FileMode.Open, FileAccess.Read);
 
                 // 1. send size of file as a 64-bit (8 bytes) long integer
                 Log.Info("Client", "Sending file size to server");
@@ -89,10 +91,21 @@ namespace wifiptp
 
 				}
 
+				return imageDir + "/image.jpg";
+
+
+            } catch (Java.Lang.Exception e) {
+                Log.Info("Client", "Exception caught: " + e.Message);
+                return "failed";
+
+            } finally {
 				Log.Info("Client", "Finished, closing");
-				outputStream.Close();
-                inputStream.Close();
-				fileStream.Close();
+                if (outputStream != null) 
+                    outputStream.Close();
+                if (inputStream != null)
+                    inputStream.Close();
+                if (fileStream != null)
+                    fileStream.Close();
 
 				if (socket != null)
 				{
@@ -101,18 +114,6 @@ namespace wifiptp
 						socket.Close();
 					}
 				}
-
-				Log.Info("Client", "Removing from group");
-				manager.RemoveGroup(channel, new MainActivity.GroupRemovedListener());
-
-				return imageDir + "/image.jpg";
-
-
-            } catch (Java.Lang.Exception e) 
-            {
-                Log.Info("Client", "Client error: " + e.Message);
-                manager.RemoveGroup(channel, new MainActivity.GroupRemovedListener());
-                return "failed";
             }
 
         }

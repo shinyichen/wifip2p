@@ -105,7 +105,11 @@ namespace wifiptp
         {
             if (wifiManager != null && channel != null)
             {
-                wifiManager.RemoveGroup(channel, new GroupRemovedListener());
+                wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
+                    Log.Info(id, "RemoveGroup successful");
+                }, (string reason) => {
+                    Log.Info(id, "RemoveGroup failed: " + reason);
+                }));
             }
             base.OnStop();
         }
@@ -194,8 +198,19 @@ namespace wifiptp
         // ITaskCompleted: callback for Client and Server tasks
         public void OnTaskCompleted()
         {
-            // restart discovery
-            discover();
+
+			// remove from group (disconnect)
+			Log.Info(id, "Removing group");
+            wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
+                Log.Info(id, "RemoveGroup successful, discovery service");
+				// restart discovery
+				discover();
+            }, (string reason) => {
+                Log.Info(id, "RemoveGroup failed: " + reason);
+                discover();
+            }));
+
+
         }
 
         // responds to manager.ClearServiceRequests
@@ -336,14 +351,25 @@ namespace wifiptp
 
         public class GroupRemovedListener : Java.Lang.Object, IActionListener
         {
+
+            private readonly Action success;
+
+            private readonly Action<string> failure;
+
+            public GroupRemovedListener(Action success, Action<string> failure)
+            {
+                this.success = success;
+                this.failure = failure;
+            }
+
             public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
             {
-                Log.Info(id, "Remove group failed");
+                failure(reason.ToString());
             }
 
             public void OnSuccess()
             {
-                Log.Info(id, "Group removed");
+                success();
             }
         }
 

@@ -74,8 +74,6 @@ namespace wifiptp
             outputStream.Close();
 
             serverSocket.Close();
-            Log.Info("Server", "Removing group");
-            manager.RemoveGroup(channel, new MainActivity.GroupRemovedListener());
 
 
 			return imageDir + "/received.jpg";
