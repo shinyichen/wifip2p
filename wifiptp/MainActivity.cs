@@ -15,82 +15,75 @@ using System;
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, IConnectionInfoListener, ITaskCompleted
+    public class MainActivity : Activity
 	{
 
         private const string id = "Backpack-Main";
 
-        /* my port */
-        public const int port = 45288;
+        private P2pService service;
 
-		private WifiP2pManager wifiManager;
-		private Channel channel;
-		private BroadcastReceiver wifiBroadcastReceiver;
-
-		private IntentFilter intentFilter;
         private List<WifiP2pDevice>devices = new List<WifiP2pDevice>();
 
 		private Button searchButton;
 
         private ListView listView;
+
         protected ArrayAdapter adapter;
 
+        private DiscoveryCompleted discoveryCompletedCallback;
 
 		protected override void OnCreate(Bundle savedInstanceState)
 		{
 			base.OnCreate(savedInstanceState);
 
+            // layout
 			SetContentView(Resource.Layout.Main);
 			searchButton = FindViewById<Button>(Resource.Id.discoverButton);
 			searchButton.Click += delegate {
 				discover();
 			};
+			discoveryCompletedCallback = new DiscoveryCompleted(() =>
+			{
+				searchButton.Enabled = true;
+			});
 
-            Dictionary<string, string> record = new Dictionary<string, string>();
-            record.Add("port", port.ToString());
-            WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.NewInstance("_backpack", "_backpack._tcp", record);
+			adapter = new ArrayAdapter(this, Resource.Layout.ListItem, devices);
+			adapter.SetNotifyOnChange(true);
 
-            // TODO this should be in a service so it stays running
-			wifiManager = (WifiP2pManager)GetSystemService(Context.WifiP2pService);
-			channel = wifiManager.Initialize(this, MainLooper, null); //Registers the application with the Wi-Fi framework.
-            wifiManager.ClearLocalServices(channel, null);
-            wifiManager.AddLocalService(channel, serviceInfo, new ServiceAddedListener());
+			listView = FindViewById<ListView>(Resource.Id.deviceListView);
+			listView.Adapter = adapter;
 
+			listView.ItemClick += (sender, e) =>
+			{
+				int position = e.Position;
+				WifiP2pDevice device = (WifiP2pDevice)adapter.GetItem(position);
+				Log.Info(id, device.ToString());
 
-			wifiBroadcastReceiver = new WiFiDirectBroadcastReceiver(wifiManager, channel, this);
+				WifiP2pConfig config = new WifiP2pConfig();
+				config.DeviceAddress = device.DeviceAddress;
+				//config.GroupOwnerIntent = 0; // make myself least inclined to be owner, so I can connect to server
+				service.connect(config);
+			};
 
-			intentFilter = new IntentFilter();
-			intentFilter.AddAction(WifiP2pManager.WifiP2pStateChangedAction);
-			intentFilter.AddAction(WifiP2pManager.WifiP2pPeersChangedAction);
-			intentFilter.AddAction(WifiP2pManager.WifiP2pConnectionChangedAction);
-			intentFilter.AddAction(WifiP2pManager.WifiP2pThisDeviceChangedAction);
-
-            adapter = new ArrayAdapter(this, Resource.Layout.ListItem, devices);
-            adapter.SetNotifyOnChange(true);
-            listView = FindViewById<ListView>(Resource.Id.deviceListView);
-            listView.Adapter = adapter;
-
-            listView.ItemClick += (sender, e) =>
+            // start P2pService if it hasn't been started
+            ServiceConnection serviceConnection = new ServiceConnection((IBinder service) =>
             {
-                int position = e.Position;
-                WifiP2pDevice device = (WifiP2pDevice)adapter.GetItem(position);
-                Log.Info(id, device.ToString());
-
-                WifiP2pConfig config = new WifiP2pConfig();
-                config.DeviceAddress = device.DeviceAddress;
-                config.GroupOwnerIntent = 15;
-                wifiManager.Connect(channel, config, new ConnectListener());
-            };
-
-
-
-            discover();
+                this.service = ((P2pServiceBinder)service).GetP2pService();
+                Log.Info(id, "service connected");
+                discover();
+            }, () =>
+            {
+                this.service = null;
+                Log.Info(id, "service disconnected");
+            });
+            Intent intent = new Intent(this, typeof(P2pService));
+            StartService(intent);
+            BindService(intent, serviceConnection, Bind.AutoCreate);
 		}
 
 		protected override void OnResume()
 		{
 			base.OnResume();
-			RegisterReceiver(wifiBroadcastReceiver, intentFilter);
 
             // TODO need to call discover?
 		}
@@ -98,250 +91,77 @@ namespace wifiptp
 		protected override void OnPause()
 		{
 			base.OnPause();
-			UnregisterReceiver(wifiBroadcastReceiver);
 		}
 
         protected override void OnStop()
         {
-            if (wifiManager != null && channel != null)
-            {
-                wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
-                    Log.Info(id, "RemoveGroup successful");
-                }, (string reason) => {
-                    Log.Info(id, "RemoveGroup failed: " + reason);
-                }));
-            }
+            //if (wifiManager != null && channel != null)
+            //{
+            //    wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
+            //        Log.Info(id, "RemoveGroup successful");
+            //    }, (string reason) => {
+            //        Log.Info(id, "RemoveGroup failed: " + reason);
+            //    }));
+            //}
             base.OnStop();
         }
 
-        private WifiP2pDnsSdServiceRequest serviceRequest;
-
-		private void discover()
-		{
-
-			searchButton.Enabled = false;
-            adapter.Clear();
-
-			// set service response listeners
-			wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener(adapter), new RecordAvailableListener(adapter));
-
-            wifiManager.ClearServiceRequests(channel, new ClearServiceRequestListener(() => {
-
-                // clear service request successful
-                Log.Info(id, "ClearServiceRequests successful");
-
-				// add service discovery request
-				serviceRequest = WifiP2pDnsSdServiceRequest.NewInstance();
-                wifiManager.AddServiceRequest(channel, serviceRequest, new AddServiceRequestListener(() => {
-
-                    // add service request successful
-                    Log.Info(id, "AddServiceRequest successful");
-
-					// discover service
-                    wifiManager.DiscoverServices(channel, new DiscoverServicesListener(() => {
-                        // discovery successful
-                        searchButton.Enabled = true;
-                        Log.Info(id, "DiscoverServices successful");
-
-                    }, (string reason) => {
-                        // discovery failed
-                        searchButton.Enabled = true;
-                        Log.Info(id, "DiscoverServices failed: " + reason.ToString());
-                    }));
-
-                }, (string reason) => {
-                    // add service request failed
-					Log.Info(id, "AddServiceRequest failed: " + reason.ToString());
-                }));
-            }, (string reason) => {
-				// service request cleared
-				Log.Info(id, "ClearServiceRequests failed: " + reason.ToString());
-            }));
-            
-
-
-
-
-
-
-		}
-
-        // this callback is called when connection is made and connection info is available
-        public void OnConnectionInfoAvailable(WifiP2pInfo info)
-        {
-			if (info.GroupFormed)
-			{
-				Log.Info(id, "Group owner: " + info.GroupOwnerAddress.HostAddress);
-				Log.Info(id, "Is Group owner: " + info.IsGroupOwner);
-			}
-			else
-			{
-				Log.Info(id, "No group");
-			}
-
-			if (info.IsGroupOwner)
-			{
-				Log.Info(id, "connected as server");
-				adapter.Clear(); // disallow any more connection
-                FileServerAsyncTask task = new FileServerAsyncTask(this, wifiManager, channel, port, this);
-				task.Execute();
-			}
-			else
-			{
-				Log.Info(id, "connected as client");
-				adapter.Clear(); // disallow any more connection
-                ClientAsyncTask task = new ClientAsyncTask(this, info.GroupOwnerAddress, wifiManager, channel, this);
-				task.Execute();
-			}
-        }
-
-        // ITaskCompleted: callback for Client and Server tasks
-        public void OnTaskCompleted()
-        {
-
-			// remove from group (disconnect)
-			Log.Info(id, "Removing group");
-            wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
-                Log.Info(id, "RemoveGroup successful, discovery service");
-				// restart discovery
-				discover();
-            }, (string reason) => {
-                Log.Info(id, "RemoveGroup failed: " + reason);
-                discover();
-            }));
-
-
-        }
-
-        // responds to manager.ClearServiceRequests
-        public class ClearServiceRequestListener : Java.Lang.Object, IActionListener
-        {
-            private readonly Action success;
-
-            private readonly Action<string> failure;
-
-            public ClearServiceRequestListener(Action success, Action<string> failure)
+        private void discover() {
+            if (service != null)
             {
-                this.success = success;
-                this.failure = failure;
-            }
-
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                failure(reason.ToString());
-            }
-
-            public void OnSuccess()
-            {
-                success();
+                if (searchButton != null)
+                    searchButton.Enabled = false;
+                service.discover();
             }
         }
 
-        public class ServiceAddedListener : Java.Lang.Object, IActionListener
+
+
+        private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
         {
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                Log.Info(id, "Add Local Service failed: " + reason.ToString());
+            private readonly Action action;
+
+            public DiscoveryCompleted(Action action) {
+                this.action = action;
             }
 
-            public void OnSuccess()
+            public void OnTaskCompleted()
             {
-                Log.Info(id, "Local Service added");
+                action();
             }
         }
 
-        public class RecordAvailableListener : Java.Lang.Object, IDnsSdTxtRecordListener
+
+        private class ServiceConnection : Java.Lang.Object, IServiceConnection
         {
 
-            private ArrayAdapter adapter;
+            private readonly Action<IBinder> connected;
 
-            public RecordAvailableListener(ArrayAdapter adapter) {
-                this.adapter = adapter;
+            private readonly Action disconnected;
+
+            public ServiceConnection(Action<IBinder> connected, Action disconnected) 
+            {
+                this.connected = connected;
+                this.disconnected = disconnected;
             }
 
-            public void OnDnsSdTxtRecordAvailable(string fullDomainName, IDictionary<string, string> txtRecordMap, WifiP2pDevice srcDevice)
+            public void OnServiceConnected(ComponentName name, IBinder service)
             {
-                string deviceName = srcDevice.DeviceName;
-                int port = int.Parse(txtRecordMap["port"]);
-                //devicePorts.Add(srcDevice.DeviceName, port);
-                Log.Info(id, "Got device port: " + srcDevice.DeviceName + ":" + port);
+                connected(service);
+            }
+
+            public void OnServiceDisconnected(ComponentName name)
+            {
+                disconnected();
             }
         }
 
-        public class ServiceResponseListener : Java.Lang.Object, IDnsSdServiceResponseListener
-        {
-			private ArrayAdapter adapter;
 
-			public ServiceResponseListener(ArrayAdapter adapter)
-			{
-				this.adapter = adapter;
-			}
 
-            public void OnDnsSdServiceAvailable(string instanceName, string registrationType, WifiP2pDevice srcDevice)
-            {
-                adapter.Add(srcDevice);
-                Log.Info(id, "Device found: " + srcDevice.DeviceAddress + " " + srcDevice.DeviceName + " " + srcDevice.PrimaryDeviceType);
-            }
-        }
 
-        public class AddServiceRequestListener : Java.Lang.Object, IActionListener
-        {
+		
 
-            private readonly Action success;
 
-            private readonly Action<string> failure;
-
-            public AddServiceRequestListener(Action success, Action<string> failure)
-            {
-                this.success = success;
-                this.failure = failure;
-            }
-
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                failure(reason.ToString());
-            }
-
-            public void OnSuccess()
-            {
-                success();
-            }
-        }
-
-		public class DiscoverServicesListener : Java.Lang.Object, IActionListener
-		{
-            private readonly Action success;
-
-            private readonly Action<string> failure;
-
-            public DiscoverServicesListener(Action success, Action<string> failure) {
-                this.success = success;
-                this.failure = failure;
-            }
-
-			public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-			{
-                failure(reason.ToString());
-			}
-
-			public void OnSuccess()
-			{
-                success();
-			}
-		}
-
-        public class ConnectListener : Java.Lang.Object, IActionListener
-        {
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                Log.Info(id, "Connection failed: " + reason.ToString());
-            }
-
-            public void OnSuccess()
-            {
-                Log.Info(id, "Connection success");
-            }
-        }
 
         // start server and client tasks only when connection info is available
         // TODO we only want to start file transfer if connection was established by user manually
@@ -349,29 +169,7 @@ namespace wifiptp
         // TODO handle if click on device while another connection is running
 
 
-        public class GroupRemovedListener : Java.Lang.Object, IActionListener
-        {
 
-            private readonly Action success;
-
-            private readonly Action<string> failure;
-
-            public GroupRemovedListener(Action success, Action<string> failure)
-            {
-                this.success = success;
-                this.failure = failure;
-            }
-
-            public void OnFailure([GeneratedEnum] WifiP2pFailureReason reason)
-            {
-                failure(reason.ToString());
-            }
-
-            public void OnSuccess()
-            {
-                success();
-            }
-        }
 
 
 

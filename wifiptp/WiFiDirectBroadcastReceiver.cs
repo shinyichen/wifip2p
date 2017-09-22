@@ -13,13 +13,13 @@ namespace wifiptp
     {
         private WifiP2pManager manager;
         private Channel channel;
-        private MainActivity activity;
+        private P2pService service;
 
-        public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, MainActivity activity)
+        public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, P2pService service)
         {
             this.manager = manager;
             this.channel = channel;
-            this.activity = activity;
+            this.service = service;
         }
 
         public override void OnReceive(Context context, Intent intent)
@@ -54,7 +54,7 @@ namespace wifiptp
                 {
 					Log.Info("WifiDirectBroadcastReceiver", "connection established, requesting connection info");
                     //manager.RequestConnectionInfo(channel, new ConnectionInfoAvailableListener(context, manager, channel, MainActivity.port));
-                    manager.RequestConnectionInfo(channel, activity);
+                    manager.RequestConnectionInfo(channel, service);
                 } else {
                     Log.Info("WifiDirectBroadcastReceiver", "disconnected");
                 }

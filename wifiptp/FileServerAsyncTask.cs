@@ -39,7 +39,6 @@ namespace wifiptp
             ServerSocket serverSocket = new ServerSocket(port);
             Socket client = serverSocket.Accept();
 
-            // TODO move this to service, if no connection not made in certain time, kill the service
 
             Log.Info("Server", "Received incoming connection on port 8888");
             Stream inputStream = client.InputStream;

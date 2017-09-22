@@ -43,7 +43,7 @@ namespace wifiptp
             Log.Info("Client", "Connecting to server");
             Socket socket = new Socket();
             socket.Bind(null);
-            InetSocketAddress sa = new InetSocketAddress(ip, MainActivity.port);
+            InetSocketAddress sa = new InetSocketAddress(ip, P2pService.port);
             try
             {
                 socket.Connect(sa, 2000);
