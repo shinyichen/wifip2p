@@ -22,7 +22,17 @@ namespace wifiptp
 
         private const string id = "P2pService";
 
-        IBinder binder;
+        public static readonly string DISCOVERY_STARTED_ACTION = "edu.isi.backpack.android.DISCOVERY_STARTED_ACTION";
+
+        public static readonly string DISCOVERY_COMPLETED_ACTION = "edu.isi.backpack.android.DISCOVERY_COMPLETED_ACTION";
+
+        public static readonly string DEVICES_CHANGED = "edu.isi.backpack.android.DEVICES_CHANGED";
+
+        public static readonly string CONNECTION_ESTABLISHED_ACTION = "edu.isi.backpack.android.CONNECTION_ESTABLISHED_ACTION";
+
+        public static readonly string CONNECTION_CLOSED_ACTION = "edu.isi.backpack.android.CONNECTION_CLOSED_ACTION";
+
+		IBinder binder;
 
 		private WifiP2pManager wifiManager;
         public WifiP2pManager WifiManager {
@@ -40,6 +50,11 @@ namespace wifiptp
         private IntentFilter intentFilter;
 
         private List<WifiP2pDevice> devices = new List<WifiP2pDevice>();
+        public List<WifiP2pDevice> Devices {
+            get {
+                return devices;
+            }
+        }
 
         public override StartCommandResult OnStartCommand(Android.Content.Intent intent, StartCommandFlags flags, int startId)
         {
@@ -84,13 +99,23 @@ namespace wifiptp
 
         public void discover()
 		{
+
+			Intent i = new Intent(DISCOVERY_STARTED_ACTION);
+			SendBroadcast(i);
+            
             devices.Clear();
-            // TODO broadcast
+            i = new Intent(DEVICES_CHANGED);
+            SendBroadcast(i);
             Log.Info(id, "device cleared");
 
 			// set service response listeners
             Log.Info(id, "channel: " + channel.ToString());
-			wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener(devices), new RecordAvailableListener());
+            wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener((srcDevice) => {
+				devices.Add(srcDevice);
+                Intent ndintent = new Intent(DEVICES_CHANGED);
+				SendBroadcast(ndintent);
+				Log.Info(id, "Device found: " + srcDevice.DeviceAddress + " " + srcDevice.DeviceName + " " + srcDevice.PrimaryDeviceType);
+            }), new RecordAvailableListener());
 
             Log.Info(id, "SetDnsSdResponseListeners");
 
@@ -109,13 +134,15 @@ namespace wifiptp
 					// discover service
 					wifiManager.DiscoverServices(channel, new DiscoverServicesListener(() => {
                         // discovery successful
-                        // TODO broadcast 
 						Log.Info(id, "DiscoverServices successful");
+                        i = new Intent(DISCOVERY_COMPLETED_ACTION);
+						SendBroadcast(i);
 
 					}, (string reason) => {
 						// discovery failed
-						// TODO broadcast
 						Log.Info(id, "DiscoverServices failed: " + reason.ToString());
+                        i = new Intent(DISCOVERY_COMPLETED_ACTION);
+						SendBroadcast(i);
 					}));
 
 				}, (string reason) => {
@@ -150,7 +177,8 @@ namespace wifiptp
 			{
 				Log.Info(id, "connected as server");
 				devices.Clear(); // disallow any more connection, if main is active
-                // TODO braodcast
+                Intent i = new Intent(DEVICES_CHANGED);
+				SendBroadcast(i);
 				FileServerAsyncTask task = new FileServerAsyncTask(this, wifiManager, channel, port, this);
 				task.Execute();
 			}
@@ -158,7 +186,8 @@ namespace wifiptp
 			{
 				Log.Info(id, "connected as client");
 				devices.Clear(); // disallow any more connection, if main is active
-                // TODO broadcast
+                Intent i = new Intent(DEVICES_CHANGED);
+				SendBroadcast(i);
 				ClientAsyncTask task = new ClientAsyncTask(this, info.GroupOwnerAddress, wifiManager, channel, this);
 				task.Execute();
 			}
@@ -179,7 +208,8 @@ namespace wifiptp
 				discover();
 			}));
 
-
+			Intent i = new Intent(CONNECTION_CLOSED_ACTION);
+			SendBroadcast(i);
 		}
 
         public void OnChannelDisconnected()
@@ -203,18 +233,16 @@ namespace wifiptp
 		public class ServiceResponseListener : Java.Lang.Object, IDnsSdServiceResponseListener
 		{
 
-            private List<WifiP2pDevice> devices;
+            private readonly Action<WifiP2pDevice> action;
 
-            public ServiceResponseListener(List<WifiP2pDevice> devices)
+            public ServiceResponseListener(Action<WifiP2pDevice> action)
 			{
-				this.devices = devices;
+                this.action = action;
 			}
 
 			public void OnDnsSdServiceAvailable(string instanceName, string registrationType, WifiP2pDevice srcDevice)
 			{
-				devices.Add(srcDevice);
-                // TODO tell main activity if it exists, broadcast?
-				Log.Info(id, "Device found: " + srcDevice.DeviceAddress + " " + srcDevice.DeviceName + " " + srcDevice.PrimaryDeviceType);
+                action(srcDevice);
 			}
 		}
 

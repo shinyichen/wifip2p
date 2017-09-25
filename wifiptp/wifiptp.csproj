@@ -36,7 +36,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidManagedSymbols>true</AndroidManagedSymbols>
-    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+    <EmbedAssembliesIntoApk>false</EmbedAssembliesIntoApk>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -53,6 +53,8 @@
     <Compile Include="ClientAsyncTask.cs" />
     <Compile Include="ITaskCompleted.cs" />
     <Compile Include="P2pService.cs" />
+    <Compile Include="P2pServiceBroadcastReceiver.cs" />
+    <Compile Include="P2pServiceListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

@@ -15,7 +15,7 @@ using System;
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity
+    public class MainActivity : Activity, P2pServiceListener
 	{
 
         private const string id = "Backpack-Main";
@@ -31,6 +31,11 @@ namespace wifiptp
         protected ArrayAdapter adapter;
 
         private DiscoveryCompleted discoveryCompletedCallback;
+
+        private BroadcastReceiver p2pServiceBroadcastReceiver;
+
+        private IntentFilter intentFilter;
+
 
 		protected override void OnCreate(Bundle savedInstanceState)
 		{
@@ -70,7 +75,6 @@ namespace wifiptp
             {
                 this.service = ((P2pServiceBinder)service).GetP2pService();
                 Log.Info(id, "service connected");
-                discover();
             }, () =>
             {
                 this.service = null;
@@ -78,19 +82,30 @@ namespace wifiptp
             });
             Intent intent = new Intent(this, typeof(P2pService));
             StartService(intent);
+
+			// listen to broadcast
+            p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
+			intentFilter = new IntentFilter();
+            intentFilter.AddAction(P2pService.DEVICES_CHANGED);
+            intentFilter.AddAction(P2pService.DISCOVERY_STARTED_ACTION);
+            intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
+            intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
+            intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
             BindService(intent, serviceConnection, Bind.AutoCreate);
 		}
 
 		protected override void OnResume()
 		{
 			base.OnResume();
-
-            // TODO need to call discover?
+            RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
+            if (service != null) 
+                discover();
 		}
 
 		protected override void OnPause()
 		{
 			base.OnPause();
+            UnregisterReceiver(p2pServiceBroadcastReceiver);
 		}
 
         protected override void OnStop()
@@ -109,13 +124,37 @@ namespace wifiptp
         private void discover() {
             if (service != null)
             {
-                if (searchButton != null)
-                    searchButton.Enabled = false;
                 service.discover();
             }
         }
 
+        public void OnDevicesChanged()
+        {
+            // update array adapter
+            adapter.Clear();
+            adapter.AddAll(service.Devices);
+        }
 
+        public void OnDiscoveryStarted()
+        {
+            searchButton.Enabled = false;
+        }
+
+        public void OnDiscoveryStopped()
+        {
+            searchButton.Enabled = true;
+        }
+
+        public void OnConnectionStarted()
+        {
+            adapter.Clear();
+            searchButton.Enabled = false;
+        }
+
+        public void OnConnectionClosed()
+        {
+            
+        }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
         {
