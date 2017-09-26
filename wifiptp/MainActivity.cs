@@ -70,18 +70,7 @@ namespace wifiptp
 				service.connect(config);
 			};
 
-            // start P2pService if it hasn't been started
-            ServiceConnection serviceConnection = new ServiceConnection((IBinder service) =>
-            {
-                this.service = ((P2pServiceBinder)service).GetP2pService();
-                Log.Info(id, "service connected");
-            }, () =>
-            {
-                this.service = null;
-                Log.Info(id, "service disconnected");
-            });
-            Intent intent = new Intent(this, typeof(P2pService));
-            StartService(intent);
+
 
 			// listen to broadcast
             p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
@@ -91,15 +80,36 @@ namespace wifiptp
             intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
             intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
             intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
-            BindService(intent, serviceConnection, Bind.AutoCreate);
+
 		}
 
 		protected override void OnResume()
 		{
 			base.OnResume();
             RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
-            if (service != null) 
+
+            if (service == null) {
+				// start P2pService if it hasn't been started
+				ServiceConnection serviceConnection = new ServiceConnection((IBinder service) =>
+				{
+					this.service = ((P2pServiceBinder)service).GetP2pService();
+					Log.Info(id, "service connected");
+					discover();
+				}, () =>
+				{
+					this.service = null;
+					Log.Info(id, "service disconnected");
+				});
+				Intent intent = new Intent(this, typeof(P2pService));
+				StartService(intent);
+
+                BindService(intent, serviceConnection, Bind.AutoCreate);
+
+            } else {
                 discover();
+            }
+
+
 		}
 
 		protected override void OnPause()
@@ -147,6 +157,7 @@ namespace wifiptp
 
         public void OnConnectionStarted()
         {
+            // disable UI when connection is established
             adapter.Clear();
             searchButton.Enabled = false;
         }
@@ -204,8 +215,6 @@ namespace wifiptp
 
         // start server and client tasks only when connection info is available
         // TODO we only want to start file transfer if connection was established by user manually
-        // TODO handle if click on device and was already connected
-        // TODO handle if click on device while another connection is running
 
 
 
