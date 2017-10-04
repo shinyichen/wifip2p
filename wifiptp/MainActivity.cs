@@ -11,18 +11,21 @@ using Android.Util;
 using Java.Net;
 using Android.Net.Wifi.P2p.Nsd;
 using System;
+using Android.Net.Nsd;
 
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, P2pServiceListener
+    public class MainActivity : Activity, ITaskCompleted
 	{
 
         private const string id = "Backpack-Main";
 
-        private P2pService service;
+        private ServerService serverService;
 
-        private List<WifiP2pDevice>devices = new List<WifiP2pDevice>();
+        private NsdManager nsdManager;
+
+        private List<NsdServiceInfo>devices = new List<NsdServiceInfo>();
 
 		private Button searchButton;
 
@@ -30,11 +33,15 @@ namespace wifiptp
 
         protected ArrayAdapter adapter;
 
-        private DiscoveryCompleted discoveryCompletedCallback;
+        private NsdDiscoveryListener nsdDiscoveryListener;
 
-        private BroadcastReceiver p2pServiceBroadcastReceiver;
+        private ServiceResolvedListener nsdServiceResolvedListener;
 
-        private IntentFilter intentFilter;
+        //private DiscoveryCompleted discoveryCompletedCallback;
+
+        //private BroadcastReceiver p2pServiceBroadcastReceiver;
+
+        //private IntentFilter intentFilter;
 
 
 		protected override void OnCreate(Bundle savedInstanceState)
@@ -47,10 +54,22 @@ namespace wifiptp
 			searchButton.Click += delegate {
 				discover();
 			};
-			discoveryCompletedCallback = new DiscoveryCompleted(() =>
-			{
-				searchButton.Enabled = true;
-			});
+            //discoveryCompletedCallback = new DiscoveryCompleted(() =>
+            //{
+            //	searchButton.Enabled = true;
+            //});
+
+            // discover -> resolve -> add device
+            nsdServiceResolvedListener = new ServiceResolvedListener((NsdServiceInfo info) => {
+                devices.Add(info);
+            });
+            nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
+            {
+                string serviceName = info.ServiceName;
+                if (serviceName.Contains("backpack") && !serviceName.Equals(serverService.MyServiceName)) {
+                    nsdManager.ResolveService(info, nsdServiceResolvedListener);
+                }
+            });
 
 			adapter = new ArrayAdapter(this, Resource.Layout.ListItem, devices);
 			adapter.SetNotifyOnChange(true);
@@ -61,46 +80,52 @@ namespace wifiptp
 			listView.ItemClick += (sender, e) =>
 			{
 				int position = e.Position;
-				WifiP2pDevice device = (WifiP2pDevice)adapter.GetItem(position);
+                NsdServiceInfo device = (NsdServiceInfo)adapter.GetItem(position);
 				Log.Info(id, device.ToString());
 
-				WifiP2pConfig config = new WifiP2pConfig();
-				config.DeviceAddress = device.DeviceAddress;
-				//config.GroupOwnerIntent = 0; // make myself least inclined to be owner, so I can connect to server
-				service.connect(config);
+                //WifiP2pConfig config = new WifiP2pConfig();
+                //config.DeviceAddress = device.DeviceAddress;
+                //config.GroupOwnerIntent = 0; // make myself least inclined to be owner, so I can connect to server
+                //service.connect(config);
+
+                // connect
+                InetAddress host = device.Host;
+                int port = device.Port;
+                ClientAsyncTask task = new ClientAsyncTask(this, host, port, this);
 			};
 
 
 
 			// listen to broadcast
-            p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
-			intentFilter = new IntentFilter();
-            intentFilter.AddAction(P2pService.DEVICES_CHANGED);
-            intentFilter.AddAction(P2pService.DISCOVERY_STARTED_ACTION);
-            intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
-            intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
-            intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
+   //         p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
+			//intentFilter = new IntentFilter();
+            //intentFilter.AddAction(P2pService.DEVICES_CHANGED);
+            //intentFilter.AddAction(P2pService.DISCOVERY_STARTED_ACTION);
+            //intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
+            //intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
+            //intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
 
 		}
 
 		protected override void OnResume()
 		{
 			base.OnResume();
-            RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
+            //RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
 
-            if (service == null) {
+            if (serverService == null) {
 				// start P2pService if it hasn't been started
 				ServiceConnection serviceConnection = new ServiceConnection((IBinder service) =>
 				{
-					this.service = ((P2pServiceBinder)service).GetP2pService();
+					this.serverService = ((ServerServiceBinder)service).GetServerService();
+                    nsdManager = serverService.NsdManager;
 					Log.Info(id, "service connected");
 					discover();
 				}, () =>
 				{
-					this.service = null;
+					this.serverService = null;
 					Log.Info(id, "service disconnected");
 				});
-				Intent intent = new Intent(this, typeof(P2pService));
+				Intent intent = new Intent(this, typeof(ServerService));
 				StartService(intent);
 
                 BindService(intent, serviceConnection, Bind.AutoCreate);
@@ -115,7 +140,7 @@ namespace wifiptp
 		protected override void OnPause()
 		{
 			base.OnPause();
-            UnregisterReceiver(p2pServiceBroadcastReceiver);
+            //UnregisterReceiver(p2pServiceBroadcastReceiver);
 		}
 
         protected override void OnStop()
@@ -128,22 +153,23 @@ namespace wifiptp
             //        Log.Info(id, "RemoveGroup failed: " + reason);
             //    }));
             //}
+            nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
             base.OnStop();
         }
 
         private void discover() {
-            if (service != null)
-            {
-                service.discover();
-            }
+            if (nsdManager != null) {
+                nsdManager.DiscoverServices("_backpack._tcp", NsdProtocol.DnsSd, nsdDiscoveryListener);
+
+			}
         }
 
-        public void OnDevicesChanged()
-        {
-            // update array adapter
-            adapter.Clear();
-            adapter.AddAll(service.Devices);
-        }
+        //public void OnDevicesChanged()
+        //{
+        //    // update array adapter
+        //    adapter.Clear();
+        //    adapter.AddAll(service.Devices);
+        //}
 
         public void OnDiscoveryStarted()
         {
@@ -165,6 +191,11 @@ namespace wifiptp
         public void OnConnectionClosed()
         {
             
+        }
+
+        public void OnTaskCompleted()
+        {
+            discover();
         }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
@@ -208,10 +239,72 @@ namespace wifiptp
 
 
 
+		public class NsdDiscoveryListener : Java.Lang.Object, NsdManager.IDiscoveryListener
+		{
 
-		
+			private NsdManager nsdManager;
+			private Action<NsdServiceInfo> onServiceFoundAction;
+
+			public NsdDiscoveryListener(NsdManager nsdManager, Action<NsdServiceInfo> onServiceFoundAction)
+			{
+				this.nsdManager = nsdManager;
+				this.onServiceFoundAction = onServiceFoundAction;
+			}
+
+			public void OnDiscoveryStarted(string serviceType)
+			{
+				Log.Debug(id, "Nsd Discovery Started");
+			}
+
+			public void OnDiscoveryStopped(string serviceType)
+			{
+				Log.Debug(id, "Nsd Discovery Stopped");
+			}
+
+			public void OnServiceFound(NsdServiceInfo serviceInfo)
+			{
+				Log.Debug(id, "Service Found: " + serviceInfo);
+				onServiceFoundAction(serviceInfo);
+			}
+
+			public void OnServiceLost(NsdServiceInfo serviceInfo)
+			{
+				Log.Debug(id, "Service Lost: " + serviceInfo);
+			}
+
+			public void OnStartDiscoveryFailed(string serviceType, NsdFailure errorCode)
+			{
+				Log.Debug(id, "On Start Discovery Failed: " + errorCode.ToString());
+				nsdManager.StopServiceDiscovery(this);
+			}
+
+			public void OnStopDiscoveryFailed(string serviceType, NsdFailure errorCode)
+			{
+				Log.Debug(id, "On Stop Discovery Failed: " + errorCode.ToString());
+				nsdManager.StopServiceDiscovery(this);
+			}
+		}
 
 
+		public class ServiceResolvedListener : Java.Lang.Object, NsdManager.IResolveListener
+		{
+			private Action<NsdServiceInfo> serviceResolvedAction;
+
+			public ServiceResolvedListener(Action<NsdServiceInfo> serviceResolvedAction)
+			{
+				this.serviceResolvedAction = serviceResolvedAction;
+			}
+			public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
+			{
+				Log.Error(id, "Resolve Service Failed: " + errorCode.ToString());
+			}
+
+			public void OnServiceResolved(NsdServiceInfo serviceInfo)
+			{
+				Log.Debug(id, "Service Resolved: " + serviceInfo);
+				serviceResolvedAction(serviceInfo);
+			}
+		}
 
         // start server and client tasks only when connection info is available
         // TODO we only want to start file transfer if connection was established by user manually

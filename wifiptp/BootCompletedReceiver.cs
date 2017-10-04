@@ -18,8 +18,8 @@ namespace wifiptp
     {
         public override void OnReceive(Context context, Intent intent)
         {
-            // Start p2p service at device startup
-            Intent i = new Intent(context, typeof(P2pService));
+            // Start server service at device startup
+            Intent i = new Intent(context, typeof(ServerService));
             context.StartService(i);
         }
     }

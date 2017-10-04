@@ -57,6 +57,7 @@
     <Compile Include="P2pServiceListener.cs" />
     <Compile Include="BootCompletedReceiver.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="ServerService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

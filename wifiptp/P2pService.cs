@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using Android.App;
 using Android.Content;
+using Android.Net.Nsd;
 using Android.Net.Wifi.P2p;
 using Android.Net.Wifi.P2p.Nsd;
 using Android.OS;
+using Android.Runtime;
 using Android.Util;
 using static Android.Net.Wifi.P2p.WifiP2pManager;
 
@@ -15,7 +17,7 @@ namespace wifiptp
     [IntentFilter(new String[] { "com.yourname.P2pService" })]
 
     // service should run in backgroun and not stop when app stops
-    // TODO service should start when device starts
+    // service should start when device starts
 
     public class P2pService : IntentService, IConnectionInfoListener, ITaskCompleted, IChannelListener
     {
@@ -41,6 +43,9 @@ namespace wifiptp
             }
         }
 
+        private NsdManager nsdManager;
+        private string myServiceName;
+
 		private Channel channel;
 
 		public const int port = 45288;
@@ -50,9 +55,16 @@ namespace wifiptp
         private IntentFilter intentFilter;
 
         private List<WifiP2pDevice> devices = new List<WifiP2pDevice>();
-        public List<WifiP2pDevice> Devices {
+        //public List<WifiP2pDevice> Devices {
+        //    get {
+        //        return devices;
+        //    }
+        //}
+
+        private List<NsdServiceInfo> services = new List<NsdServiceInfo>();
+        public List<NsdServiceInfo> Services {
             get {
-                return devices;
+                return services;
             }
         }
 
@@ -61,16 +73,30 @@ namespace wifiptp
 
             Log.Info(id, "Starting service");
 			// initialize local service
-			Dictionary<string, string> record = new Dictionary<string, string>();
-			record.Add("port", port.ToString());
-			WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.NewInstance("_backpack", "_backpack._tcp", record);
+			//Dictionary<string, string> record = new Dictionary<string, string>();
+			//record.Add("port", port.ToString());
+			//WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.NewInstance("_backpack", "_backpack._tcp", record);
 
-			// add backpack service
-			wifiManager = (WifiP2pManager)GetSystemService(Context.WifiP2pService);
-			channel = wifiManager.Initialize(this, Looper.MyLooper(), null); //Registers the application with the Wi-Fi framework.
-			Log.Info(id, "Channel: " + channel);
-			wifiManager.ClearLocalServices(channel, null);
-			wifiManager.AddLocalService(channel, serviceInfo, new ServiceAddedListener());
+			//// --- add backpack service ---
+			//wifiManager = (WifiP2pManager)GetSystemService(Context.WifiP2pService);
+			//channel = wifiManager.Initialize(this, Looper.MyLooper(), null); //Registers the application with the Wi-Fi framework.
+			//Log.Info(id, "Channel: " + channel);
+			//wifiManager.ClearLocalServices(channel, null);
+			//wifiManager.AddLocalService(channel, serviceInfo, new ServiceAddedListener());
+
+            // Using NSD service
+			NsdServiceInfo serviceInfo = new NsdServiceInfo();
+            serviceInfo.ServiceName = "Backpack";
+            serviceInfo.ServiceType = "_backpack._tcp";
+            serviceInfo.Port = port;
+
+            Log.Debug(id, "NSD Registration");
+            nsdManager = (NsdManager)GetSystemService(Context.NsdService);
+            nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, new NsdRegistrationListener((NsdServiceInfo info) => {
+                myServiceName = info.ServiceName;
+            }));
+
+            // -------
 
 			// Listen to wifi direct broadcasts
 			wifiBroadcastReceiver = new WiFiDirectBroadcastReceiver(wifiManager, channel, this);
@@ -100,58 +126,78 @@ namespace wifiptp
         public void discover()
 		{
 
+			//Intent i = new Intent(DISCOVERY_STARTED_ACTION);
+			//SendBroadcast(i);
+
+			//devices.Clear();
+			//i = new Intent(DEVICES_CHANGED);
+			//SendBroadcast(i);
+			//Log.Info(id, "device cleared");
+
+			//// set service response listeners
+			//         Log.Info(id, "channel: " + channel.ToString());
+			//         wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener((srcDevice) => {
+			//	devices.Add(srcDevice);
+			//             Intent ndintent = new Intent(DEVICES_CHANGED);
+			//	SendBroadcast(ndintent);
+			//	Log.Info(id, "Device found: " + srcDevice.DeviceAddress + " " + srcDevice.DeviceName + " " + srcDevice.PrimaryDeviceType);
+			//         }), new RecordAvailableListener());
+
+			//         Log.Info(id, "SetDnsSdResponseListeners");
+
+			//wifiManager.ClearServiceRequests(channel, new ClearServiceRequestListener(() => {
+
+			//	// clear service request successful
+			//	Log.Info(id, "ClearServiceRequests successful");
+
+			//	// add service discovery request
+			//	WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.NewInstance();
+			//	wifiManager.AddServiceRequest(channel, serviceRequest, new AddServiceRequestListener(() => {
+
+			//		// add service request successful
+			//		Log.Info(id, "AddServiceRequest successful");
+
+			//		// discover service
+			//		wifiManager.DiscoverServices(channel, new DiscoverServicesListener(() => {
+			//                     // discovery successful
+			//			Log.Info(id, "DiscoverServices successful");
+			//                     i = new Intent(DISCOVERY_COMPLETED_ACTION);
+			//			SendBroadcast(i);
+
+			//		}, (string reason) => {
+			//			// discovery failed
+			//			Log.Info(id, "DiscoverServices failed: " + reason.ToString());
+			//                     i = new Intent(DISCOVERY_COMPLETED_ACTION);
+			//			SendBroadcast(i);
+			//		}));
+
+			//	}, (string reason) => {
+			//		// add service request failed
+			//		Log.Info(id, "AddServiceRequest failed: " + reason.ToString());
+			//	}));
+			//}, (string reason) => {
+			//	// service request cleared
+			//	Log.Info(id, "ClearServiceRequests failed: " + reason.ToString());
+			//}));
+
 			Intent i = new Intent(DISCOVERY_STARTED_ACTION);
 			SendBroadcast(i);
-            
-            devices.Clear();
-            i = new Intent(DEVICES_CHANGED);
-            SendBroadcast(i);
-            Log.Info(id, "device cleared");
 
-			// set service response listeners
-            Log.Info(id, "channel: " + channel.ToString());
-            wifiManager.SetDnsSdResponseListeners(channel, new ServiceResponseListener((srcDevice) => {
-				devices.Add(srcDevice);
-                Intent ndintent = new Intent(DEVICES_CHANGED);
-				SendBroadcast(ndintent);
-				Log.Info(id, "Device found: " + srcDevice.DeviceAddress + " " + srcDevice.DeviceName + " " + srcDevice.PrimaryDeviceType);
-            }), new RecordAvailableListener());
-
-            Log.Info(id, "SetDnsSdResponseListeners");
-
-			wifiManager.ClearServiceRequests(channel, new ClearServiceRequestListener(() => {
-
-				// clear service request successful
-				Log.Info(id, "ClearServiceRequests successful");
-
-				// add service discovery request
-				WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.NewInstance();
-				wifiManager.AddServiceRequest(channel, serviceRequest, new AddServiceRequestListener(() => {
-
-					// add service request successful
-					Log.Info(id, "AddServiceRequest successful");
-
-					// discover service
-					wifiManager.DiscoverServices(channel, new DiscoverServicesListener(() => {
-                        // discovery successful
-						Log.Info(id, "DiscoverServices successful");
-                        i = new Intent(DISCOVERY_COMPLETED_ACTION);
-						SendBroadcast(i);
-
-					}, (string reason) => {
-						// discovery failed
-						Log.Info(id, "DiscoverServices failed: " + reason.ToString());
-                        i = new Intent(DISCOVERY_COMPLETED_ACTION);
-						SendBroadcast(i);
-					}));
-
-				}, (string reason) => {
-					// add service request failed
-					Log.Info(id, "AddServiceRequest failed: " + reason.ToString());
-				}));
-			}, (string reason) => {
-				// service request cleared
-				Log.Info(id, "ClearServiceRequests failed: " + reason.ToString());
+			services.Clear();
+			i = new Intent(DEVICES_CHANGED);
+			SendBroadcast(i);
+			Log.Info(id, "services cleared");
+			nsdManager.DiscoverServices("_backpack._tcp", NsdProtocol.DnsSd, new NsdDiscoveryListener(nsdManager, (NsdServiceInfo serviceInfo) => {
+				if (serviceInfo.ServiceType.Equals("_backpack._tcp") && !serviceInfo.ServiceName.Equals(myServiceName))
+				{
+					// add device
+                    nsdManager.ResolveService(serviceInfo, new ServiceResolvedListener((NsdServiceInfo info) => {
+						Log.Info(id, "Service found: " + info.Host + ": " + info.Port);
+                        services.Add(info);
+						Intent ndintent = new Intent(DEVICES_CHANGED);
+						SendBroadcast(ndintent);
+                    }));
+				}
 			}));
 
 		}
@@ -188,7 +234,7 @@ namespace wifiptp
 				devices.Clear(); // disallow any more connection, if main is active
                 Intent i = new Intent(DEVICES_CHANGED);
 				SendBroadcast(i);
-				ClientAsyncTask task = new ClientAsyncTask(this, info.GroupOwnerAddress, wifiManager, channel, this);
+				ClientAsyncTask task = new ClientAsyncTask(this, info.GroupOwnerAddress, port, this);
 				task.Execute();
 			}
 		}
@@ -365,6 +411,101 @@ namespace wifiptp
 				success();
 			}
 		}
+
+        public class NsdRegistrationListener : Java.Lang.Object, NsdManager.IRegistrationListener
+        {
+
+            private Action<NsdServiceInfo> onRegisteredAction;
+
+            public NsdRegistrationListener(Action<NsdServiceInfo> onRegisteredAction) {
+                this.onRegisteredAction = onRegisteredAction;
+            }
+
+            public void OnRegistrationFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
+            {
+                Log.Debug(id, "NSD Registration Failed");
+            }
+
+            public void OnServiceRegistered(NsdServiceInfo serviceInfo)
+            {
+                Log.Debug(id, "NSD Service Registered");
+                onRegisteredAction(serviceInfo);
+            }
+
+            public void OnServiceUnregistered(NsdServiceInfo serviceInfo)
+            {
+                Log.Debug(id, "NSD Service Unregistered");
+            }
+
+            public void OnUnregistrationFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
+            {
+                Log.Debug(id, "NSD Unregistration Failed");
+            }
+        }
+
+        public class NsdDiscoveryListener : Java.Lang.Object, NsdManager.IDiscoveryListener
+        {
+
+            private NsdManager nsdManager;
+            private Action<NsdServiceInfo> onServiceFoundAction;
+
+            public NsdDiscoveryListener(NsdManager nsdManager, Action<NsdServiceInfo> onServiceFoundAction) {
+                this.nsdManager = nsdManager;
+                this.onServiceFoundAction = onServiceFoundAction;
+            }
+
+            public void OnDiscoveryStarted(string serviceType)
+            {
+                Log.Debug(id, "Nsd Discovery Started");
+            }
+
+            public void OnDiscoveryStopped(string serviceType)
+            {
+                Log.Debug(id, "Nsd Discovery Stopped");
+            }
+
+            public void OnServiceFound(NsdServiceInfo serviceInfo)
+            {
+                Log.Debug(id, "Service Found: " + serviceInfo);
+                onServiceFoundAction(serviceInfo);
+            }
+
+            public void OnServiceLost(NsdServiceInfo serviceInfo)
+            {
+                Log.Debug(id, "Service Lost: " + serviceInfo);
+            }
+
+            public void OnStartDiscoveryFailed(string serviceType, NsdFailure errorCode)
+            {
+                Log.Debug(id, "On Start Discovery Failed: " + errorCode.ToString());
+                nsdManager.StopServiceDiscovery(this);
+            }
+
+            public void OnStopDiscoveryFailed(string serviceType, NsdFailure errorCode)
+            {
+                Log.Debug(id, "On Stop Discovery Failed: " + errorCode.ToString());
+                nsdManager.StopServiceDiscovery(this);
+            }
+        }
+
+        public class ServiceResolvedListener : Java.Lang.Object, NsdManager.IResolveListener
+        {
+            private Action<NsdServiceInfo> serviceResolvedAction;
+
+            public ServiceResolvedListener(Action<NsdServiceInfo> serviceResolvedAction) {
+                this.serviceResolvedAction = serviceResolvedAction;
+            }
+            public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
+            {
+                Log.Error(id, "Resolve Service Failed: " + errorCode.ToString());
+            }
+
+            public void OnServiceResolved(NsdServiceInfo serviceInfo)
+            {
+                Log.Debug(id, "Service Resolved: " + serviceInfo);
+                serviceResolvedAction(serviceInfo);
+            }
+        }
 
     }
 

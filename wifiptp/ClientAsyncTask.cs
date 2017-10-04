@@ -7,7 +7,6 @@ using Android.OS;
 using Android.Util;
 using Java.Lang;
 using Java.Net;
-using static Android.Net.Wifi.P2p.WifiP2pManager;
 
 namespace wifiptp
 {
@@ -20,20 +19,17 @@ namespace wifiptp
 
         private InetAddress ip;
 
-        private WifiP2pManager manager;
-
-        private Channel channel;
+        private int port;
 
         private ITaskCompleted taskCompletedListener;
 
         private byte[] buf = new byte[1024];
 
-        public ClientAsyncTask(Context context, InetAddress ip, WifiP2pManager manager, Channel channel, ITaskCompleted taskCompletedListener)
+        public ClientAsyncTask(Context context, InetAddress ip, int port, ITaskCompleted taskCompletedListener)
         {
-            this.manager = manager;
-            this.channel = channel;
             this.context = context;
             this.ip = ip;
+            this.port = port;
             this.taskCompletedListener = taskCompletedListener;
         }
 
@@ -49,7 +45,7 @@ namespace wifiptp
             Log.Info("Client", "Connecting to server");
             Socket socket = new Socket();
             socket.Bind(null);
-            InetSocketAddress sa = new InetSocketAddress(ip, P2pService.port);
+            InetSocketAddress sa = new InetSocketAddress(ip, port);
             try
             {
                 socket.Connect(sa, 2000);
