@@ -26,6 +26,8 @@ namespace wifiptp
 
         private NsdManager nsdManager;
 
+        public static readonly string SERVICE_REGISTERED_ACTION = "edu.isi.backpack.android.SERVICE_REGISTERED_ACTION";
+
 		public NsdManager NsdManager
 		{
 			get
@@ -55,17 +57,15 @@ namespace wifiptp
 
 		IBinder binder;
 
-
-		public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
-		{
-
+        public override void OnCreate()
+        {
 			Log.Info(id, "Starting Server Service");
 
 			// Initialize a server socket on the next available port.
 			serverSocket = new ServerSocket(0);
-            port = serverSocket.LocalPort;
+			port = serverSocket.LocalPort;
 
-            // Register service
+			// Register service
 			NsdServiceInfo serviceInfo = new NsdServiceInfo();
 			serviceInfo.ServiceName = "Backpack";
 			serviceInfo.ServiceType = "_backpack._tcp";
@@ -73,18 +73,21 @@ namespace wifiptp
 
 			Log.Debug(id, "NSD Registration");
 			nsdManager = (NsdManager)GetSystemService(Context.NsdService);
-            nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
-            {
-                myServiceName = info.ServiceName;
-            });
-            nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
+			nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
+			{
+				myServiceName = info.ServiceName;
+				Intent i = new Intent(SERVICE_REGISTERED_ACTION);
+				SendBroadcast(i);
+			});
+			nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
 
-            // Start a separate thread for socket
-            new System.Threading.Thread(new System.Threading.ThreadStart(() =>
-            {
-                while(true) {
+			// Start a separate thread for socket
+			new System.Threading.Thread(new System.Threading.ThreadStart(() =>
+			{
+				while (true)
+				{
 					Log.Info("Server", "Server thread running, waiting for incoming connection");
-					
+
 					// wait for client connection
 					Socket client = serverSocket.Accept();
 
@@ -175,7 +178,11 @@ namespace wifiptp
 
 				}
 
-            })).Start();
+			})).Start();
+        }
+
+		public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
+		{
 
 			// constant running service
 			return StartCommandResult.Sticky;
@@ -217,7 +224,7 @@ namespace wifiptp
 
 			public void OnServiceRegistered(NsdServiceInfo serviceInfo)
 			{
-				Log.Debug(id, "NSD Service Registered");
+                Log.Debug(id, "NSD Service Registered: " + serviceInfo.ServiceName);
 				onRegisteredAction(serviceInfo);
 			}
 

@@ -16,7 +16,7 @@ using Android.Net.Nsd;
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, ITaskCompleted
+    public class MainActivity : Activity, ITaskCompleted, P2pServiceListener
 	{
 
         private const string id = "Backpack-Main";
@@ -37,11 +37,13 @@ namespace wifiptp
 
         private ServiceResolvedListener nsdServiceResolvedListener;
 
+        private string myServiceName;
+
         //private DiscoveryCompleted discoveryCompletedCallback;
 
-        //private BroadcastReceiver p2pServiceBroadcastReceiver;
+        private BroadcastReceiver p2pServiceBroadcastReceiver;
 
-        //private IntentFilter intentFilter;
+        private IntentFilter intentFilter;
 
 
 		protected override void OnCreate(Bundle savedInstanceState)
@@ -66,7 +68,7 @@ namespace wifiptp
             nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
             {
                 string serviceName = info.ServiceName;
-                if (serviceName.Contains("backpack") && !serviceName.Equals(serverService.MyServiceName)) {
+                if (info.ServiceType.Equals("_backpack._tcp") && !serviceName.Equals(serverService.MyServiceName)) {
                     nsdManager.ResolveService(info, nsdServiceResolvedListener);
                 }
             });
@@ -97,13 +99,14 @@ namespace wifiptp
 
 
 			// listen to broadcast
-   //         p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
-			//intentFilter = new IntentFilter();
+            p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
+			intentFilter = new IntentFilter();
             //intentFilter.AddAction(P2pService.DEVICES_CHANGED);
             //intentFilter.AddAction(P2pService.DISCOVERY_STARTED_ACTION);
             //intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
             //intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
             //intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
+
 
 		}
 
@@ -118,7 +121,9 @@ namespace wifiptp
 				{
 					this.serverService = ((ServerServiceBinder)service).GetServerService();
                     nsdManager = serverService.NsdManager;
+                    myServiceName = serverService.MyServiceName;
 					Log.Info(id, "service connected");
+                    Title = myServiceName;
 					discover();
 				}, () =>
 				{
@@ -196,6 +201,17 @@ namespace wifiptp
         public void OnTaskCompleted()
         {
             discover();
+        }
+
+        public void OnDevicesChanged()
+        {
+            
+        }
+
+        public void OnServiceRegistered()
+        {
+            myServiceName = serverService.MyServiceName;
+            Title = myServiceName;
         }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted

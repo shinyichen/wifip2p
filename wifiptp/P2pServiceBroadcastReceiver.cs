@@ -44,6 +44,8 @@ namespace wifiptp
             } else if (action.Equals(P2pService.CONNECTION_CLOSED_ACTION)) {
                 Log.Info(id, "connection closed");
                 listener.OnConnectionClosed();
+            } else if (action.Equals(ServerService.SERVICE_REGISTERED_ACTION)) {
+                listener.OnServiceRegistered();
             }
         }
     }
