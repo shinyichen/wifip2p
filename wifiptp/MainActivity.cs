@@ -67,9 +67,19 @@ namespace wifiptp
             });
             nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
             {
+                // found new device -> resolve
                 string serviceName = info.ServiceName;
-                if (info.ServiceType.Equals("_backpack._tcp") && !serviceName.Equals(serverService.MyServiceName)) {
+                if (info.ServiceType.Equals("_backpack._tcp") && !serviceName.Equals(serverService.MyServiceName))
+                {
                     nsdManager.ResolveService(info, nsdServiceResolvedListener);
+                }
+            }, (NsdServiceInfo info) => {
+                // device lost, remove device
+                foreach (NsdServiceInfo d in devices) {
+                    if (d.ServiceName.Equals(info.ServiceName)) {
+                        devices.Remove(d);
+                        break;
+                    }
                 }
             });
 
@@ -113,7 +123,7 @@ namespace wifiptp
 		protected override void OnResume()
 		{
 			base.OnResume();
-            //RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
+            RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
 
             if (serverService == null) {
 				// start P2pService if it hasn't been started
@@ -145,7 +155,7 @@ namespace wifiptp
 		protected override void OnPause()
 		{
 			base.OnPause();
-            //UnregisterReceiver(p2pServiceBroadcastReceiver);
+            UnregisterReceiver(p2pServiceBroadcastReceiver);
 		}
 
         protected override void OnStop()
@@ -260,11 +270,13 @@ namespace wifiptp
 
 			private NsdManager nsdManager;
 			private Action<NsdServiceInfo> onServiceFoundAction;
+            private Action<NsdServiceInfo> onServiceLostAction;
 
-			public NsdDiscoveryListener(NsdManager nsdManager, Action<NsdServiceInfo> onServiceFoundAction)
+            public NsdDiscoveryListener(NsdManager nsdManager, Action<NsdServiceInfo> onServiceFoundAction, Action<NsdServiceInfo> onServiceLostAction)
 			{
 				this.nsdManager = nsdManager;
 				this.onServiceFoundAction = onServiceFoundAction;
+                this.onServiceLostAction = onServiceLostAction;
 			}
 
 			public void OnDiscoveryStarted(string serviceType)
