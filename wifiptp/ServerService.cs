@@ -75,6 +75,7 @@ namespace wifiptp
 			nsdManager = (NsdManager)GetSystemService(Context.NsdService);
 			nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
 			{
+                // service registered
 				myServiceName = info.ServiceName;
 				Intent i = new Intent(SERVICE_REGISTERED_ACTION);
 				SendBroadcast(i);

@@ -116,7 +116,7 @@ namespace wifiptp
             //intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
             //intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
             //intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
-
+            intentFilter.AddAction(ServerService.SERVICE_REGISTERED_ACTION);
 
 		}
 
@@ -222,6 +222,7 @@ namespace wifiptp
         {
             myServiceName = serverService.MyServiceName;
             Title = myServiceName;
+            Log.Debug(id, "Service Registered: " + myServiceName);
         }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
