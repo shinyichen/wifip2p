@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.IO;
+using System.Net;
 using Android.App;
 using Android.Content;
 using Android.Net.Nsd;
@@ -76,11 +77,12 @@ namespace wifiptp
 			nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
 			{
                 // service registered
-				myServiceName = info.ServiceName;
+                myServiceName = info.ServiceName;
 				Intent i = new Intent(SERVICE_REGISTERED_ACTION);
 				SendBroadcast(i);
 			});
-			nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
+            if (myServiceName == null)
+                nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
 
 			// Start a separate thread for socket
 			new System.Threading.Thread(new System.Threading.ThreadStart(() =>
@@ -205,8 +207,8 @@ namespace wifiptp
             Log.Debug(id, "Unregister service");
             nsdManager.UnregisterService(nsdRegistrationListener);
             base.OnDestroy();
-
         }
+
 
 		public class NsdRegistrationListener : Java.Lang.Object, NsdManager.IRegistrationListener
 		{

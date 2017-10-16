@@ -12,6 +12,8 @@ using Java.Net;
 using Android.Net.Wifi.P2p.Nsd;
 using System;
 using Android.Net.Nsd;
+using System.Text;
+using System.Net;
 
 namespace wifiptp
 {
@@ -45,6 +47,7 @@ namespace wifiptp
 
         private IntentFilter intentFilter;
 
+        private ServiceConnection serviceConnection;
 
 		protected override void OnCreate(Bundle savedInstanceState)
 		{
@@ -63,13 +66,18 @@ namespace wifiptp
 
             // discover -> resolve -> add device
             nsdServiceResolvedListener = new ServiceResolvedListener((NsdServiceInfo info) => {
-                devices.Add(info);
+                Log.Debug(id, "Service resolved: " + info.ServiceName);
+                RunOnUiThread(() =>
+                {
+                    adapter.Add(info);
+                });
             });
             nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
             {
                 // found new device -> resolve
                 string serviceName = info.ServiceName;
-                if (info.ServiceType.Equals("_backpack._tcp") && !serviceName.Equals(serverService.MyServiceName))
+                Log.Debug(id, "Resolve service: " + serviceName);
+                if (!serviceName.Equals(myServiceName))
                 {
                     nsdManager.ResolveService(info, nsdServiceResolvedListener);
                 }
@@ -77,7 +85,9 @@ namespace wifiptp
                 // device lost, remove device
                 foreach (NsdServiceInfo d in devices) {
                     if (d.ServiceName.Equals(info.ServiceName)) {
-                        devices.Remove(d);
+                        RunOnUiThread(() => {
+							adapter.Remove(d);
+                        });
                         break;
                     }
                 }
@@ -127,7 +137,7 @@ namespace wifiptp
 
             if (serverService == null) {
 				// start P2pService if it hasn't been started
-				ServiceConnection serviceConnection = new ServiceConnection((IBinder service) =>
+				serviceConnection = new ServiceConnection((IBinder service) =>
 				{
 					this.serverService = ((ServerServiceBinder)service).GetServerService();
                     nsdManager = serverService.NsdManager;
@@ -170,6 +180,12 @@ namespace wifiptp
             //}
             nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
             base.OnStop();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            UnbindService(serviceConnection);
         }
 
         private void discover() {
