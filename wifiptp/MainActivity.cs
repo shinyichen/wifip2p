@@ -79,7 +79,13 @@ namespace wifiptp
                 Log.Debug(id, "Resolve service: " + serviceName);
                 if (!serviceName.Equals(myServiceName))
                 {
-                    nsdManager.ResolveService(info, nsdServiceResolvedListener);
+					nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) => {
+						Log.Debug(id, "Service resolved: " + info1.ServiceName);
+						RunOnUiThread(() =>
+						{
+							adapter.Add(info1);
+						});
+					}));
                 }
             }, (NsdServiceInfo info) => {
                 // device lost, remove device
@@ -114,6 +120,7 @@ namespace wifiptp
                 InetAddress host = device.Host;
                 int port = device.Port;
                 ClientAsyncTask task = new ClientAsyncTask(this, host, port, this);
+                task.Execute();
 			};
 
 
@@ -166,6 +173,7 @@ namespace wifiptp
 		{
 			base.OnPause();
             UnregisterReceiver(p2pServiceBroadcastReceiver);
+            nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
 		}
 
         protected override void OnStop()
@@ -178,7 +186,6 @@ namespace wifiptp
             //        Log.Info(id, "RemoveGroup failed: " + reason);
             //    }));
             //}
-            nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
             base.OnStop();
         }
 
@@ -226,7 +233,7 @@ namespace wifiptp
 
         public void OnTaskCompleted()
         {
-            discover();
+            //discover();
         }
 
         public void OnDevicesChanged()
