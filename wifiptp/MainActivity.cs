@@ -69,7 +69,7 @@ namespace wifiptp
                 Log.Debug(id, "Service resolved: " + info.ServiceName);
                 RunOnUiThread(() =>
                 {
-                    adapter.Add(info);
+                    adapter.Add(new MyServiceInfo(info.ServiceName, info.Host, info.Port));
                 });
             });
             nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
@@ -77,13 +77,14 @@ namespace wifiptp
                 // found new device -> resolve
                 string serviceName = info.ServiceName;
                 Log.Debug(id, "Resolve service: " + serviceName);
+                // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
 					nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) => {
 						Log.Debug(id, "Service resolved: " + info1.ServiceName);
 						RunOnUiThread(() =>
 						{
-							adapter.Add(info1);
+                            adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
 						});
 					}));
                 }
@@ -135,6 +136,9 @@ namespace wifiptp
             //intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
             intentFilter.AddAction(ServerService.SERVICE_REGISTERED_ACTION);
 
+            // start server service
+            StartService(new Intent(this, typeof(ServerService)));
+
 		}
 
 		protected override void OnResume()
@@ -148,7 +152,8 @@ namespace wifiptp
 				{
 					this.serverService = ((ServerServiceBinder)service).GetServerService();
                     nsdManager = serverService.NsdManager;
-                    myServiceName = serverService.MyServiceName;
+                    if (serverService.MyServiceInfo != null)
+                        myServiceName = serverService.MyServiceInfo.ServiceName;
 					Log.Info(id, "service connected");
                     Title = myServiceName;
 					discover();
@@ -157,10 +162,9 @@ namespace wifiptp
 					this.serverService = null;
 					Log.Info(id, "service disconnected");
 				});
-				Intent intent = new Intent(this, typeof(ServerService));
-				StartService(intent);
 
-                BindService(intent, serviceConnection, Bind.AutoCreate);
+                // bind to server service
+                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.AutoCreate);
 
             } else {
                 discover();
@@ -171,9 +175,10 @@ namespace wifiptp
 
 		protected override void OnPause()
 		{
-			base.OnPause();
-            UnregisterReceiver(p2pServiceBroadcastReceiver);
             nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
+            UnregisterReceiver(p2pServiceBroadcastReceiver);
+            UnbindService(serviceConnection);
+			base.OnPause();
 		}
 
         protected override void OnStop()
@@ -192,7 +197,6 @@ namespace wifiptp
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            UnbindService(serviceConnection);
         }
 
         private void discover() {
@@ -243,7 +247,7 @@ namespace wifiptp
 
         public void OnServiceRegistered()
         {
-            myServiceName = serverService.MyServiceName;
+            myServiceName = serverService.MyServiceInfo.ServiceName;
             Title = myServiceName;
             Log.Debug(id, "Service Registered: " + myServiceName);
         }

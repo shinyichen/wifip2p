@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>wifiptp</RootNamespace>
     <AssemblyName>wifiptp</AssemblyName>
-    <TargetFrameworkVersion>v7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v8.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
@@ -58,6 +58,7 @@
     <Compile Include="BootCompletedReceiver.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="ServerService.cs" />
+    <Compile Include="MyServiceInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using Android.App;
 using Android.Content;
+using Android.Content.PM;
 using Android.Net.Nsd;
 using Android.OS;
 using Android.Util;
@@ -47,10 +48,10 @@ namespace wifiptp
 
         private byte[] buf = new byte[1024];
 
-        private string myServiceName;
-        public string MyServiceName {
+        private NsdServiceInfo myServiceInfo;
+        public NsdServiceInfo MyServiceInfo {
             get {
-                return myServiceName;
+                return myServiceInfo;
             }
         }
 
@@ -72,18 +73,19 @@ namespace wifiptp
 			serviceInfo.ServiceType = "_backpack._tcp";
 			serviceInfo.Port = port;
 
-			Log.Debug(id, "NSD Registration");
 			nsdManager = (NsdManager)GetSystemService(Context.NsdService);
 			nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
 			{
                 // service registered
-                myServiceName = info.ServiceName;
+                myServiceInfo = info;
 				Intent i = new Intent(SERVICE_REGISTERED_ACTION);
 				SendBroadcast(i);
 			});
-            if (myServiceName == null)
+            if (myServiceInfo == null)
+            {
+                Log.Debug(id, "NSD Registration");
                 nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
-
+            }
 			// Start a separate thread for socket
 			new System.Threading.Thread(new System.Threading.ThreadStart(() =>
 			{
