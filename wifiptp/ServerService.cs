@@ -13,8 +13,8 @@ using Java.Net;
 
 namespace wifiptp
 {
-    [Service(Label = "ServerService")]
-    [IntentFilter(new System.String[] { "com.yourname.ServerService" })]
+    [Service(Label = "ServerService", Name = "edu.isi.wifiptp.ServerService")]
+    [IntentFilter(new System.String[] { "edu.isi.wifiptp.ServerService" })]
 
 	// This service starts at boots. It registers NSD service and create a server socket and listen to incoming connection.
 	public class ServerService : IntentService
@@ -48,7 +48,7 @@ namespace wifiptp
 
         private byte[] buf = new byte[1024];
 
-        private NsdServiceInfo myServiceInfo;
+        private NsdServiceInfo myServiceInfo = null;
         public NsdServiceInfo MyServiceInfo {
             get {
                 return myServiceInfo;
@@ -61,6 +61,8 @@ namespace wifiptp
 
         public override void OnCreate()
         {
+            base.OnCreate();
+
 			Log.Info(id, "Starting Server Service");
 
 			// Initialize a server socket on the next available port.
@@ -73,7 +75,8 @@ namespace wifiptp
 			serviceInfo.ServiceType = "_backpack._tcp";
 			serviceInfo.Port = port;
 
-			nsdManager = (NsdManager)GetSystemService(Context.NsdService);
+            Log.Info(id, "Get NSD Manager");
+			nsdManager = (NsdManager)GetSystemService(NsdService);
 			nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
 			{
                 // service registered
@@ -81,11 +84,10 @@ namespace wifiptp
 				Intent i = new Intent(SERVICE_REGISTERED_ACTION);
 				SendBroadcast(i);
 			});
-            if (myServiceInfo == null)
-            {
-                Log.Debug(id, "NSD Registration");
-                nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
-            }
+
+            Log.Debug(id, "NSD Registration");
+            nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
+
 			// Start a separate thread for socket
 			new System.Threading.Thread(new System.Threading.ThreadStart(() =>
 			{
@@ -93,7 +95,10 @@ namespace wifiptp
 				{
 					Log.Info("Server", "Server thread running, waiting for incoming connection");
 
-					// wait for client connection
+                    // wait for client connection
+                    if (serverSocket.IsClosed) {
+                        serverSocket = new ServerSocket(port);
+                    }
 					Socket client = serverSocket.Accept();
 
 					Log.Info("Server", "Received incoming connection ");

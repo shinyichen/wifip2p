@@ -14,6 +14,8 @@ using System;
 using Android.Net.Nsd;
 using System.Text;
 using System.Net;
+using static Android.App.ActivityManager;
+using Java.Lang;
 
 namespace wifiptp
 {
@@ -49,6 +51,10 @@ namespace wifiptp
 
         private ServiceConnection serviceConnection;
 
+        private bool serviceBound = false;
+
+        private bool discovering = false;
+
 		protected override void OnCreate(Bundle savedInstanceState)
 		{
 			base.OnCreate(savedInstanceState);
@@ -57,7 +63,7 @@ namespace wifiptp
 			SetContentView(Resource.Layout.Main);
 			searchButton = FindViewById<Button>(Resource.Id.discoverButton);
 			searchButton.Click += delegate {
-				discover();
+				//discover();
 			};
             //discoveryCompletedCallback = new DiscoveryCompleted(() =>
             //{
@@ -72,7 +78,13 @@ namespace wifiptp
                     adapter.Add(new MyServiceInfo(info.ServiceName, info.Host, info.Port));
                 });
             });
-            nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, (NsdServiceInfo info) =>
+            nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, () => {
+                // discovery started
+                discovering = true;
+            }, () => {
+                // discovery stopped
+                discovering = false;
+            }, (NsdServiceInfo info) =>
             {
                 // found new device -> resolve
                 string serviceName = info.ServiceName;
@@ -109,8 +121,7 @@ namespace wifiptp
 			listView.ItemClick += (sender, e) =>
 			{
 				int position = e.Position;
-                NsdServiceInfo device = (NsdServiceInfo)adapter.GetItem(position);
-				Log.Info(id, device.ToString());
+                MyServiceInfo device = (MyServiceInfo)adapter.GetItem(position);
 
                 //WifiP2pConfig config = new WifiP2pConfig();
                 //config.DeviceAddress = device.DeviceAddress;
@@ -139,45 +150,46 @@ namespace wifiptp
             // start server service
             StartService(new Intent(this, typeof(ServerService)));
 
+            // bind to service if service is already running
+            serviceConnection = new ServiceConnection((IBinder service) =>
+            {
+                this.serverService = ((ServerServiceBinder)service).GetServerService();
+                nsdManager = serverService.NsdManager;
+                if (serverService.MyServiceInfo != null)
+                    myServiceName = serverService.MyServiceInfo.ServiceName;
+                Log.Info(id, "service connected");
+                Title = myServiceName;
+                serviceBound = true;
+                discover();
+            }, () =>
+            {
+                this.serverService = null;
+                Log.Info(id, "service disconnected");
+                serviceBound = false;
+                // TODO reconnect
+            });
+
+            // bind to server service
+            if (isServiceRunning())
+                // service already started before the app
+                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.None);
+            // else the service is starting, wait till service broadcast registration complete to bind
+
 		}
 
 		protected override void OnResume()
 		{
-			base.OnResume();
             RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
-
-            if (serverService == null) {
-				// start P2pService if it hasn't been started
-				serviceConnection = new ServiceConnection((IBinder service) =>
-				{
-					this.serverService = ((ServerServiceBinder)service).GetServerService();
-                    nsdManager = serverService.NsdManager;
-                    if (serverService.MyServiceInfo != null)
-                        myServiceName = serverService.MyServiceInfo.ServiceName;
-					Log.Info(id, "service connected");
-                    Title = myServiceName;
-					discover();
-				}, () =>
-				{
-					this.serverService = null;
-					Log.Info(id, "service disconnected");
-				});
-
-                // bind to server service
-                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.AutoCreate);
-
-            } else {
+            if (!discovering)
                 discover();
-            }
-
-
+            base.OnResume();
 		}
 
 		protected override void OnPause()
 		{
-            nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
+            if (discovering)
+                nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
             UnregisterReceiver(p2pServiceBroadcastReceiver);
-            UnbindService(serviceConnection);
 			base.OnPause();
 		}
 
@@ -196,14 +208,35 @@ namespace wifiptp
 
         protected override void OnDestroy()
         {
+            if (serviceBound)
+            {
+                UnbindService(serviceConnection);
+                serviceBound = false;
+            }
             base.OnDestroy();
         }
 
         private void discover() {
             if (nsdManager != null) {
                 nsdManager.DiscoverServices("_backpack._tcp", NsdProtocol.DnsSd, nsdDiscoveryListener);
-
 			}
+        }
+
+        private bool isServiceRunning()
+        {
+            ActivityManager manager = (ActivityManager)GetSystemService(Context.ActivityService);
+            string className = "edu.isi.wifiptp.ServerService";
+            foreach (RunningServiceInfo service in manager.GetRunningServices(Integer.MaxValue))
+            {
+                //Log.Info(id, "Found " + service.Service.ClassName);
+                if (className.Equals(service.Service.ClassName))
+                {
+                    Log.Debug(id, "Service is already running");
+                    return true;
+                }
+            }
+            Log.Debug(id, "Service has not started");
+            return false;
         }
 
         //public void OnDevicesChanged()
@@ -247,9 +280,13 @@ namespace wifiptp
 
         public void OnServiceRegistered()
         {
-            myServiceName = serverService.MyServiceInfo.ServiceName;
-            Title = myServiceName;
-            Log.Debug(id, "Service Registered: " + myServiceName);
+            // if not yet bind to service
+            if (!serviceBound) {
+                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.None);
+            } else {
+                myServiceName = serverService.MyServiceInfo.ServiceName;
+                Title = myServiceName;
+            }
         }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
@@ -297,12 +334,16 @@ namespace wifiptp
 		{
 
 			private NsdManager nsdManager;
+            private Action onDiscoveryStartedAction;
+            private Action onDiscoveryStoppedAction;
 			private Action<NsdServiceInfo> onServiceFoundAction;
             private Action<NsdServiceInfo> onServiceLostAction;
 
-            public NsdDiscoveryListener(NsdManager nsdManager, Action<NsdServiceInfo> onServiceFoundAction, Action<NsdServiceInfo> onServiceLostAction)
+            public NsdDiscoveryListener(NsdManager nsdManager, Action onDiscoveryStartedAction, Action onDiscoveryStoppedAction, Action<NsdServiceInfo> onServiceFoundAction, Action<NsdServiceInfo> onServiceLostAction)
 			{
 				this.nsdManager = nsdManager;
+                this.onDiscoveryStartedAction = onDiscoveryStartedAction;
+                this.onDiscoveryStoppedAction = onDiscoveryStoppedAction;
 				this.onServiceFoundAction = onServiceFoundAction;
                 this.onServiceLostAction = onServiceLostAction;
 			}
@@ -310,22 +351,24 @@ namespace wifiptp
 			public void OnDiscoveryStarted(string serviceType)
 			{
 				Log.Debug(id, "Nsd Discovery Started");
+                onDiscoveryStartedAction();
 			}
 
 			public void OnDiscoveryStopped(string serviceType)
 			{
 				Log.Debug(id, "Nsd Discovery Stopped");
+                onDiscoveryStoppedAction();
 			}
 
 			public void OnServiceFound(NsdServiceInfo serviceInfo)
 			{
-				Log.Debug(id, "Service Found: " + serviceInfo);
+				//Log.Debug(id, "Service Found: " + serviceInfo);
 				onServiceFoundAction(serviceInfo);
 			}
 
 			public void OnServiceLost(NsdServiceInfo serviceInfo)
 			{
-				Log.Debug(id, "Service Lost: " + serviceInfo);
+				//Log.Debug(id, "Service Lost: " + serviceInfo);
 			}
 
 			public void OnStartDiscoveryFailed(string serviceType, NsdFailure errorCode)
@@ -352,12 +395,12 @@ namespace wifiptp
 			}
 			public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
 			{
-				Log.Error(id, "Resolve Service Failed: " + errorCode.ToString());
+				//Log.Error(id, "Resolve Service Failed: " + errorCode.ToString());
 			}
 
 			public void OnServiceResolved(NsdServiceInfo serviceInfo)
 			{
-				Log.Debug(id, "Service Resolved: " + serviceInfo);
+				//Log.Debug(id, "Service Resolved: " + serviceInfo);
 				serviceResolvedAction(serviceInfo);
 			}
 		}

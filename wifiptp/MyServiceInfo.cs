@@ -9,9 +9,27 @@ namespace wifiptp
 
         private string serviceName;
 
+        public string ServiceName {
+            get {
+                return serviceName;
+            }
+        }
+
         private InetAddress host;
 
+        public InetAddress Host {
+            get {
+                return host;
+            }
+        }
+
         private int port;
+
+        public int Port {
+            get {
+                return port;
+            }
+        }
 
         public MyServiceInfo(string serviceName, InetAddress host, int port)
         {
