@@ -29,7 +29,7 @@ namespace wifiptp
 
         private NsdManager nsdManager;
 
-        private List<NsdServiceInfo>devices = new List<NsdServiceInfo>();
+        //private List<NsdServiceInfo>devices = new List<NsdServiceInfo>();
 
 		private Button searchButton;
 
@@ -39,7 +39,7 @@ namespace wifiptp
 
         private NsdDiscoveryListener nsdDiscoveryListener;
 
-        private ServiceResolvedListener nsdServiceResolvedListener;
+        //private ServiceResolvedListener nsdServiceResolvedListener;
 
         private string myServiceName;
 
@@ -71,13 +71,7 @@ namespace wifiptp
             //});
 
             // discover -> resolve -> add device
-            nsdServiceResolvedListener = new ServiceResolvedListener((NsdServiceInfo info) => {
-                Log.Debug(id, "Service resolved: " + info.ServiceName);
-                RunOnUiThread(() =>
-                {
-                    adapter.Add(new MyServiceInfo(info.ServiceName, info.Host, info.Port));
-                });
-            });
+
             nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, () => {
                 // discovery started
                 discovering = true;
@@ -92,27 +86,31 @@ namespace wifiptp
                 // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
-					nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) => {
-						Log.Debug(id, "Service resolved: " + info1.ServiceName);
-						RunOnUiThread(() =>
-						{
+                    nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
+                    {
+                        Log.Debug(id, "Service resolved: " + info1.ServiceName);
+                        RunOnUiThread(() =>
+                        {
                             adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
-						});
-					}));
+                        });
+                    }));
+
                 }
             }, (NsdServiceInfo info) => {
                 // device lost, remove device
-                foreach (NsdServiceInfo d in devices) {
+                for (int i = 0; i < adapter.Count; i++) {
+                    MyServiceInfo d = (MyServiceInfo)adapter.GetItem(i);
                     if (d.ServiceName.Equals(info.ServiceName)) {
                         RunOnUiThread(() => {
-							adapter.Remove(d);
+                            adapter.Remove(d);
                         });
                         break;
                     }
                 }
             });
 
-			adapter = new ArrayAdapter(this, Resource.Layout.ListItem, devices);
+
+			adapter = new ArrayAdapter(this, Resource.Layout.ListItem);
 			adapter.SetNotifyOnChange(true);
 
 			listView = FindViewById<ListView>(Resource.Id.deviceListView);
@@ -213,6 +211,7 @@ namespace wifiptp
                 UnbindService(serviceConnection);
                 serviceBound = false;
             }
+            Log.Info(id, "Activity destroyed");
             base.OnDestroy();
         }
 
@@ -368,7 +367,8 @@ namespace wifiptp
 
 			public void OnServiceLost(NsdServiceInfo serviceInfo)
 			{
-				//Log.Debug(id, "Service Lost: " + serviceInfo);
+                Log.Debug(id, "Service Lost: " + serviceInfo);
+                onServiceLostAction(serviceInfo);
 			}
 
 			public void OnStartDiscoveryFailed(string serviceType, NsdFailure errorCode)
