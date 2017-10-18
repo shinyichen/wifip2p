@@ -30,6 +30,7 @@ namespace wifiptp
         private NsdManager nsdManager;
 
         //private List<NsdServiceInfo>devices = new List<NsdServiceInfo>();
+        private List<string> foundServices = new List<string>();
 
 		private Button searchButton;
 
@@ -86,15 +87,18 @@ namespace wifiptp
                 // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
-                    nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
+                    if (foundServices.IndexOf(serviceName) == -1) // avoid duplicates
                     {
-                        Log.Debug(id, "Service resolved: " + info1.ServiceName);
-                        RunOnUiThread(() =>
+                        nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
                         {
-                            adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
-                        });
-                    }));
-
+                            Log.Debug(id, "Service resolved: " + info1.ServiceName);
+                            RunOnUiThread(() =>
+                            {
+                                adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
+                                foundServices.Add(info1.ServiceName);
+                            });
+                        }));
+                    }
                 }
             }, (NsdServiceInfo info) => {
                 // device lost, remove device
@@ -102,6 +106,7 @@ namespace wifiptp
                     MyServiceInfo d = (MyServiceInfo)adapter.GetItem(i);
                     if (d.ServiceName.Equals(info.ServiceName)) {
                         RunOnUiThread(() => {
+                            foundServices.Remove(d.ServiceName);
                             adapter.Remove(d);
                         });
                         break;
