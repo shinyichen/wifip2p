@@ -83,12 +83,13 @@ namespace wifiptp
             {
                 // found new device -> resolve
                 string serviceName = info.ServiceName;
-                Log.Debug(id, "Resolve service: " + serviceName);
+
                 // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
                     if (foundServices.IndexOf(serviceName) == -1) // avoid duplicates
                     {
+                        Log.Debug(id, "Resolve service: " + serviceName);
                         nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
                         {
                             Log.Debug(id, "Service resolved: " + info1.ServiceName);
@@ -191,7 +192,11 @@ namespace wifiptp
 		protected override void OnPause()
 		{
             if (discovering)
+            {
                 nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
+                adapter.Clear();
+                foundServices.Clear();
+            }
             UnregisterReceiver(p2pServiceBroadcastReceiver);
 			base.OnPause();
 		}
@@ -400,7 +405,7 @@ namespace wifiptp
 			}
 			public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
 			{
-				//Log.Error(id, "Resolve Service Failed: " + errorCode.ToString());
+                Log.Error(id, "Resolve " + serviceInfo.ServiceName + " Failed: " + errorCode.ToString());
 			}
 
 			public void OnServiceResolved(NsdServiceInfo serviceInfo)

@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net;
 using Android.App;
+using Android.Bluetooth;
 using Android.Content;
 using Android.Content.PM;
 using Android.Net.Nsd;
@@ -17,7 +18,7 @@ namespace wifiptp
     [IntentFilter(new System.String[] { "edu.isi.wifiptp.ServerService" })]
 
 	// This service starts at boots. It registers NSD service and create a server socket and listen to incoming connection.
-	public class ServerService : IntentService
+	public class ServerService : Service
     {
 
 		private const string id = "ServerService";
@@ -69,9 +70,11 @@ namespace wifiptp
 			serverSocket = new ServerSocket(0);
 			port = serverSocket.LocalPort;
 
-			// Register service
+            // Register service
+            string deviceName = BluetoothAdapter.DefaultAdapter.Name;
+            deviceName = deviceName.Replace(" ", "_");
 			NsdServiceInfo serviceInfo = new NsdServiceInfo();
-			serviceInfo.ServiceName = "Backpack";
+			serviceInfo.ServiceName = "Backpack_" + deviceName;
 			serviceInfo.ServiceType = "_backpack._tcp";
 			serviceInfo.Port = port;
 
@@ -197,11 +200,6 @@ namespace wifiptp
 			// constant running service
 			return StartCommandResult.Sticky;
 		}
-
-        protected override void OnHandleIntent(Intent intent)
-        {
-            // Perform your service logic here
-        }
 
         public override IBinder OnBind(Intent intent)
         {
