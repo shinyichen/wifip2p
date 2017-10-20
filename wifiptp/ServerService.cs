@@ -215,9 +215,13 @@ namespace wifiptp
 
             // TODO restart service
             Log.Debug(id, "Try to restart service");
-            Intent restartServiceTask = new Intent(this.ApplicationContext, this.Class);
-            restartServiceTask.SetPackage(this.PackageName);
-            PendingIntent restartPendingIntent = PendingIntent.GetService(this.ApplicationContext, 1, restartServiceTask, PendingIntentFlags.OneShot);
+            //Intent restartServiceTask = new Intent(this.ApplicationContext, this.Class);
+            //restartServiceTask.SetPackage(this.PackageName);
+            PendingIntent restartPendingIntent = PendingIntent.GetService(
+                this.ApplicationContext,
+                1001, 
+                new Intent(this.ApplicationContext, this.Class),
+                PendingIntentFlags.OneShot);
             AlarmManager alarmManager = (AlarmManager)this.ApplicationContext.GetSystemService(AlarmService);
             alarmManager.Set(AlarmType.ElapsedRealtime, SystemClock.ElapsedRealtime() + 1000, restartPendingIntent);
 
