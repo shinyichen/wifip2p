@@ -18,7 +18,7 @@ namespace wifiptp
     [IntentFilter(new System.String[] { "edu.isi.wifiptp.ServerService" })]
 
 	// This service starts at boots. It registers NSD service and create a server socket and listen to incoming connection.
-	public class ServerService : Service
+	public class ServerService : IntentService
     {
 
 		private const string id = "ServerService";
@@ -207,15 +207,38 @@ namespace wifiptp
             return binder;
         }
 
-        public override void OnDestroy()
+        public override void OnTaskRemoved(Intent rootIntent)
         {
+
+            Log.Debug(id, "onTaskRemoved");
             Log.Debug(id, "Unregister service");
             nsdManager.UnregisterService(nsdRegistrationListener);
+
+            // TODO restart service
+            //Intent restartServiceTask = new Intent(getApplicationContext(), this.getClass());
+            //restartServiceTask.setPackage(getPackageName());
+            //PendingIntent restartPendingIntent = PendingIntent.getService(getApplicationContext(), 1, restartServiceTask, PendingIntent.FLAG_ONE_SHOT);
+            //AlarmManager myAlarmService = (AlarmManager)getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+            //myAlarmService.set(
+            //AlarmManager.ELAPSED_REALTIME,
+            //SystemClock.elapsedRealtime() + 1000,
+            //restartPendingIntent);
+
+            base.OnTaskRemoved(rootIntent);
+        }
+
+        public override void OnDestroy()
+        {
+            Log.Debug(id, "onDestroy");
             base.OnDestroy();
         }
 
+        protected override void OnHandleIntent(Intent intent)
+        {
+            throw new NotImplementedException();
+        }
 
-		public class NsdRegistrationListener : Java.Lang.Object, NsdManager.IRegistrationListener
+        public class NsdRegistrationListener : Java.Lang.Object, NsdManager.IRegistrationListener
 		{
 
 			private Action<NsdServiceInfo> onRegisteredAction;
