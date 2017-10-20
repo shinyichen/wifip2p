@@ -184,6 +184,10 @@ namespace wifiptp
 		protected override void OnResume()
 		{
             RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
+            if (serviceBound & myServiceName == null) {
+                myServiceName = serverService.MyServiceInfo.ServiceName;
+                Title = myServiceName;
+            }
             if (!discovering)
                 discover();
             base.OnResume();
