@@ -231,6 +231,8 @@ namespace wifiptp
 
         private void discover() {
             if (nsdManager != null) {
+                adapter.Clear();
+                foundServices.Clear();
                 nsdManager.DiscoverServices("_backpack._tcp", NsdProtocol.DnsSd, nsdDiscoveryListener);
 			}
         }
@@ -375,7 +377,7 @@ namespace wifiptp
 
 			public void OnServiceFound(NsdServiceInfo serviceInfo)
 			{
-				//Log.Debug(id, "Service Found: " + serviceInfo);
+				Log.Debug(id, "Service Found: " + serviceInfo);
 				onServiceFoundAction(serviceInfo);
 			}
 
