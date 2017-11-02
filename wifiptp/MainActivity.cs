@@ -56,12 +56,14 @@ namespace wifiptp
 
         private bool discovering = false;
 
+     
 		protected override void OnCreate(Bundle savedInstanceState)
 		{
 			base.OnCreate(savedInstanceState);
 
             // layout
 			SetContentView(Resource.Layout.Main);
+            Title = "Service Unregistered";
 			searchButton = FindViewById<Button>(Resource.Id.discoverButton);
 			searchButton.Click += delegate {
 				//discover();
@@ -159,10 +161,17 @@ namespace wifiptp
             {
                 this.serverService = ((ServerServiceBinder)service).GetServerService();
                 nsdManager = serverService.NsdManager;
-                if (serverService.MyServiceInfo != null)
-                    myServiceName = serverService.MyServiceInfo.ServiceName;
                 Log.Info(id, "service connected");
-                Title = myServiceName;
+                if (serverService.ServiceRegistered)
+                {
+                    myServiceName = serverService.MyServiceInfo.ServiceName;
+                    Title = myServiceName;
+                }
+                else
+                {
+                    myServiceName = null;
+                    Title = "Service Not Registered";
+                }
                 serviceBound = true;
                 discover();
             }, () =>
@@ -184,9 +193,15 @@ namespace wifiptp
 		protected override void OnResume()
 		{
             RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
-            if (serviceBound & myServiceName == null) {
-                myServiceName = serverService.MyServiceInfo.ServiceName;
-                Title = myServiceName;
+            if (serviceBound) {
+                if (serverService.ServiceRegistered)
+                {
+                    myServiceName = serverService.MyServiceInfo.ServiceName;
+                    Title = myServiceName;
+                } else {
+                    myServiceName = null;
+                    Title = "Service Not Registered";
+                }
             }
             if (!discovering)
                 discover();
@@ -302,6 +317,11 @@ namespace wifiptp
                 myServiceName = serverService.MyServiceInfo.ServiceName;
                 Title = myServiceName;
             }
+        }
+
+        public void OnServiceUnregistered() {
+            myServiceName = null;
+            Title = "Service Not Registered";
         }
 
         private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted

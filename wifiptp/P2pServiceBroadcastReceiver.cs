@@ -46,6 +46,8 @@ namespace wifiptp
                 listener.OnConnectionClosed();
             } else if (action.Equals(ServerService.SERVICE_REGISTERED_ACTION)) {
                 listener.OnServiceRegistered();
+            } else if (action.Equals(ServerService.SERVICE_UNREGISTERED_ACTION)) {
+                listener.OnServiceUnregistered();
             }
         }
     }

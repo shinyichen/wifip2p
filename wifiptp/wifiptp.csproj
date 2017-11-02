@@ -59,6 +59,7 @@
     <Compile Include="Utils.cs" />
     <Compile Include="ServerService.cs" />
     <Compile Include="MyServiceInfo.cs" />
+    <Compile Include="WiFiBroadcastReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

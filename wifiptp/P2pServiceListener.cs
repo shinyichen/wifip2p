@@ -14,5 +14,6 @@ namespace wifiptp
 
         // for NSD
         void OnServiceRegistered();
+        void OnServiceUnregistered();
     }
 }
