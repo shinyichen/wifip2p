@@ -103,6 +103,21 @@ namespace wifiptp
             Log.Info(id, "Get NSD Manager");
             nsdManager = (NsdManager)GetSystemService(NsdService);
 
+            nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
+            {
+                // service registered
+                myServiceInfo = info;
+                nsdStatus = NSD_REGISTERED;
+                Intent i = new Intent(SERVICE_REGISTERED_ACTION);
+                SendBroadcast(i);
+            }, (NsdServiceInfo info) =>
+            {
+                myServiceInfo = null;
+                nsdStatus = NSD_UNREGISTERED;
+                Intent i = new Intent(SERVICE_UNREGISTERED_ACTION);
+                SendBroadcast(i);
+            });
+
             // listen to wifi state changes
             IntentFilter filter = new IntentFilter();
             filter.AddAction(WifiManager.WifiStateChangedAction);
@@ -137,24 +152,10 @@ namespace wifiptp
                         serviceInfo.ServiceType = "_backpack._tcp";
                         serviceInfo.Port = port;
 
-                        nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
-                        {
-                            // service registered
-                            myServiceInfo = info;
-                            nsdStatus = NSD_REGISTERED;
-                            Intent i = new Intent(SERVICE_REGISTERED_ACTION);
-                            SendBroadcast(i);
-                        }, (NsdServiceInfo info) =>
-                        {
-                            myServiceInfo = null;
-                            nsdStatus = NSD_UNREGISTERED;
-                            Intent i = new Intent(SERVICE_UNREGISTERED_ACTION);
-                            SendBroadcast(i);
-                        });
 
                         Log.Debug(id, "NSD Registration");
-                        nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
                         nsdStatus = NSD_REGISTERING;
+                        nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
 
                         socketThread = startSocketThread();
                     }
@@ -198,8 +199,8 @@ namespace wifiptp
 
         private void unregisterService() {
             Log.Debug(id, "Unregister service");
-            nsdManager.UnregisterService(nsdRegistrationListener);
             nsdStatus = NSD_UNREGISTERING;
+            nsdManager.UnregisterService(nsdRegistrationListener);
         }
 
 		public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
