@@ -89,19 +89,7 @@ namespace wifiptp
                 // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
-                    if (foundServices.IndexOf(info.ToString()) == -1) // avoid duplicates
-                    {
-                        Log.Debug(id, "Resolve service: " + serviceName);
-                        nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
-                        {
-                            Log.Debug(id, "Service resolved: " + info1.ServiceName);
-                            RunOnUiThread(() =>
-                            {
-                                adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
-                                foundServices.Add(info1.ToString());
-                            });
-                        }));
-                    }
+                    resolveService(info);
                 }
             }, (NsdServiceInfo info) => {
                 // device lost, remove device
@@ -269,6 +257,30 @@ namespace wifiptp
             return false;
         }
 
+        private void resolveService(NsdServiceInfo info) {
+            Log.Debug(id, "Resolve service: " + info.ServiceName);
+            if (foundServices.IndexOf(info.ToString()) == -1)
+            { // avoid duplicates
+
+                nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
+                {
+                    Log.Debug(id, "Service resolved: " + info1.ServiceName);
+                    RunOnUiThread(() =>
+                    {
+                        if (!foundServices.Contains(info1.ToString()))
+                        {
+                            adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
+                            foundServices.Add(info1.ToString());
+                        }
+                    });
+                }, (NsdServiceInfo info1) =>
+                {
+                    // resolve failed, try again
+                    resolveService(info1);
+                }));
+            }
+        }
+
         //public void OnDevicesChanged()
         //{
         //    // update array adapter
@@ -423,15 +435,17 @@ namespace wifiptp
 
 		public class ServiceResolvedListener : Java.Lang.Object, NsdManager.IResolveListener
 		{
-			private Action<NsdServiceInfo> serviceResolvedAction;
+            private Action<NsdServiceInfo> serviceResolvedAction, resolveFailedAction;
 
-			public ServiceResolvedListener(Action<NsdServiceInfo> serviceResolvedAction)
+            public ServiceResolvedListener(Action<NsdServiceInfo> serviceResolvedAction, Action<NsdServiceInfo> resolveFailedAction)
 			{
 				this.serviceResolvedAction = serviceResolvedAction;
+                this.resolveFailedAction = resolveFailedAction;
 			}
 			public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
 			{
                 Log.Error(id, "Resolve " + serviceInfo.ServiceName + " Failed: " + errorCode.ToString());
+                resolveFailedAction(serviceInfo);
 			}
 
 			public void OnServiceResolved(NsdServiceInfo serviceInfo)
