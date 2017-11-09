@@ -89,7 +89,7 @@ namespace wifiptp
                 // don't process duplicates
                 if (!serviceName.Equals(myServiceName))
                 {
-                    if (foundServices.IndexOf(serviceName) == -1) // avoid duplicates
+                    if (foundServices.IndexOf(info.ToString()) == -1) // avoid duplicates
                     {
                         Log.Debug(id, "Resolve service: " + serviceName);
                         nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
@@ -98,7 +98,7 @@ namespace wifiptp
                             RunOnUiThread(() =>
                             {
                                 adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
-                                foundServices.Add(info1.ServiceName);
+                                foundServices.Add(info1.ToString());
                             });
                         }));
                     }
@@ -109,7 +109,7 @@ namespace wifiptp
                     MyServiceInfo d = (MyServiceInfo)adapter.GetItem(i);
                     if (d.ServiceName.Equals(info.ServiceName)) {
                         RunOnUiThread(() => {
-                            foundServices.Remove(d.ServiceName);
+                            foundServices.Remove(d.ToString());
                             adapter.Remove(d);
                         });
                         break;
