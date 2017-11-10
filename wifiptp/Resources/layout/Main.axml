@@ -3,11 +3,6 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <Button
-        android:id="@+id/discoverButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Discover Devices" />
     <ListView
         android:id="@+id/deviceListView"
         android:layout_width="match_parent"

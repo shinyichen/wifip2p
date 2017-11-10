@@ -1,12 +1,8 @@
-﻿
-using System;
+﻿using System;
 using System.IO;
-using System.Net;
 using Android.App;
 using Android.Bluetooth;
 using Android.Content;
-using Android.Content.PM;
-using Android.Net;
 using Android.Net.Nsd;
 using Android.Net.Wifi;
 using Android.OS;
@@ -22,9 +18,6 @@ namespace wifiptp
 	// This service starts at boots. It registers NSD service and create a server socket and listen to incoming connection.
 	public class ServerService : IntentService
     {
-
-        // TODO what to do when no wifi connected
-        // TODO what to do when disconnected, or switched to different WIFI
         // Register only when connected
         // What happens to NSD registration when WIFI is suddenly turned off
 
@@ -169,8 +162,7 @@ namespace wifiptp
                     {
                         unregisterService();
                         Log.Debug(id, "Closing socket");
-                        serverSocket.Close(); // TODO check: thread should auto finish
-                        //socketThread.Interrupt();
+                        serverSocket.Close(); 
                     }
 
                 }
@@ -178,13 +170,11 @@ namespace wifiptp
             {
                 // disconnected
                 // close server socket thread & unregister service
-                // TODO
                 if (nsdStatus == NSD_REGISTERED)
                 {
                     unregisterService();
                     Log.Debug(id, "Closing socket");
-                    serverSocket.Close();  // TODO check: thread should auto finish
-                    //socketThread.Interrupt();
+                    serverSocket.Close();  
 
                 }
             });
@@ -284,16 +274,6 @@ namespace wifiptp
 				Log.Debug(id, "NSD Unregistration Failed");
 			}
 		}
-
-        //public bool connectedToWiFi()
-        //{
-        //    ConnectivityManager cm = (ConnectivityManager) GetSystemService(ConnectivityService);
-        //    NetworkInfo info = cm.ActiveNetworkInfo;
-        //    if (info != null && info.Type == ConnectivityType.Wifi) {
-        //        return true;
-        //    }
-        //    return false;
-        //}
 
 
         // Start a separate thread for socket

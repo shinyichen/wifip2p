@@ -1,26 +1,19 @@
 ﻿using Android.App;
 using Android.Widget;
 using Android.OS;
-using static Android.Net.Wifi.P2p.WifiP2pManager;
-using Android.Net.Wifi.P2p;
 using Android.Content;
 using System.Collections.Generic;
-using Android.Runtime;
-using System.Linq;
 using Android.Util;
 using Java.Net;
-using Android.Net.Wifi.P2p.Nsd;
 using System;
 using Android.Net.Nsd;
-using System.Text;
-using System.Net;
 using static Android.App.ActivityManager;
 using Java.Lang;
 
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, ITaskCompleted, P2pServiceListener
+    public class MainActivity : Activity, ITaskCompleted, NsdServiceListener
 	{
 
         private const string id = "Backpack-Main";
@@ -29,10 +22,7 @@ namespace wifiptp
 
         private NsdManager nsdManager;
 
-        //private List<NsdServiceInfo>devices = new List<NsdServiceInfo>();
         private List<string> foundServices = new List<string>();
-
-		private Button searchButton;
 
         private ListView listView;
 
@@ -40,11 +30,7 @@ namespace wifiptp
 
         private NsdDiscoveryListener nsdDiscoveryListener;
 
-        //private ServiceResolvedListener nsdServiceResolvedListener;
-
         private string myServiceName;
-
-        //private DiscoveryCompleted discoveryCompletedCallback;
 
         private BroadcastReceiver p2pServiceBroadcastReceiver;
 
@@ -64,14 +50,6 @@ namespace wifiptp
             // layout
 			SetContentView(Resource.Layout.Main);
             Title = "Service Unregistered";
-			searchButton = FindViewById<Button>(Resource.Id.discoverButton);
-			searchButton.Click += delegate {
-				//discover();
-			};
-            //discoveryCompletedCallback = new DiscoveryCompleted(() =>
-            //{
-            //	searchButton.Enabled = true;
-            //});
 
             // discover -> resolve -> add device
 
@@ -117,11 +95,6 @@ namespace wifiptp
 				int position = e.Position;
                 MyServiceInfo device = (MyServiceInfo)adapter.GetItem(position);
 
-                //WifiP2pConfig config = new WifiP2pConfig();
-                //config.DeviceAddress = device.DeviceAddress;
-                //config.GroupOwnerIntent = 0; // make myself least inclined to be owner, so I can connect to server
-                //service.connect(config);
-
                 // connect
                 InetAddress host = device.Host;
                 int port = device.Port;
@@ -132,13 +105,8 @@ namespace wifiptp
 
 
 			// listen to broadcast
-            p2pServiceBroadcastReceiver = new P2pServiceBroadcastReceiver(this);
+            p2pServiceBroadcastReceiver = new NsdServiceBroadcastReceiver(this);
 			intentFilter = new IntentFilter();
-            //intentFilter.AddAction(P2pService.DEVICES_CHANGED);
-            //intentFilter.AddAction(P2pService.DISCOVERY_STARTED_ACTION);
-            //intentFilter.AddAction(P2pService.DISCOVERY_COMPLETED_ACTION);
-            //intentFilter.AddAction(P2pService.CONNECTION_ESTABLISHED_ACTION);
-            //intentFilter.AddAction(P2pService.CONNECTION_CLOSED_ACTION);
             intentFilter.AddAction(ServerService.SERVICE_REGISTERED_ACTION);
 
             // start server service
@@ -167,7 +135,6 @@ namespace wifiptp
                 this.serverService = null;
                 Log.Info(id, "service disconnected");
                 serviceBound = false;
-                // TODO reconnect
             });
 
             // bind to server service
@@ -210,14 +177,6 @@ namespace wifiptp
 
         protected override void OnStop()
         {
-            //if (wifiManager != null && channel != null)
-            //{
-            //    wifiManager.RemoveGroup(channel, new GroupRemovedListener(() => {
-            //        Log.Info(id, "RemoveGroup successful");
-            //    }, (string reason) => {
-            //        Log.Info(id, "RemoveGroup failed: " + reason);
-            //    }));
-            //}
             base.OnStop();
         }
 
@@ -281,43 +240,9 @@ namespace wifiptp
             }
         }
 
-        //public void OnDevicesChanged()
-        //{
-        //    // update array adapter
-        //    adapter.Clear();
-        //    adapter.AddAll(service.Devices);
-        //}
-
-        public void OnDiscoveryStarted()
-        {
-            searchButton.Enabled = false;
-        }
-
-        public void OnDiscoveryStopped()
-        {
-            searchButton.Enabled = true;
-        }
-
-        public void OnConnectionStarted()
-        {
-            // disable UI when connection is established
-            adapter.Clear();
-            searchButton.Enabled = false;
-        }
-
-        public void OnConnectionClosed()
-        {
-            
-        }
-
         public void OnTaskCompleted()
         {
             //discover();
-        }
-
-        public void OnDevicesChanged()
-        {
-            
         }
 
         public void OnServiceRegistered()
@@ -454,15 +379,6 @@ namespace wifiptp
 				serviceResolvedAction(serviceInfo);
 			}
 		}
-
-        // start server and client tasks only when connection info is available
-        // TODO we only want to start file transfer if connection was established by user manually
-
-
-
-
-
-
     }
 }
 
