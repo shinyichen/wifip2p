@@ -1,26 +1,32 @@
 ﻿using Android.App;
 using Android.Widget;
 using Android.OS;
-using Android.Content;
 using System.Collections.Generic;
 using Android.Util;
 using Java.Net;
 using System;
+using wifiptp.Api;
 using Android.Net.Nsd;
-using static Android.App.ActivityManager;
-using Java.Lang;
 
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, ITaskCompleted, NsdServiceListener
+    public class MainActivity : Activity, StatusChangedListener, ITaskCompleted
 	{
 
         private const string id = "Backpack-Main";
 
-        private ServerService serverService;
+        private const string serviceName = "backpack";
 
-        private NsdManager nsdManager;
+        private Wifiptp wifiptp;
+
+        private bool discoverable = false;
+
+        private Switch discoverableSwitch;
+
+        private bool searching = false;
+
+        private Switch searchSwitch;
 
         private List<string> foundServices = new List<string>();
 
@@ -28,19 +34,7 @@ namespace wifiptp
 
         protected ArrayAdapter adapter;
 
-        private NsdDiscoveryListener nsdDiscoveryListener;
-
         private string myServiceName;
-
-        private BroadcastReceiver p2pServiceBroadcastReceiver;
-
-        private IntentFilter intentFilter;
-
-        private ServiceConnection serviceConnection;
-
-        private bool serviceBound = false;
-
-        private bool discovering = false;
 
      
 		protected override void OnCreate(Bundle savedInstanceState)
@@ -51,38 +45,31 @@ namespace wifiptp
 			SetContentView(Resource.Layout.Main);
             Title = "Service Unregistered";
 
-            // discover -> resolve -> add device
+            discoverableSwitch = (Switch)FindViewById(Resource.Id.discoverableSwitch);
+            discoverableSwitch.CheckedChange += (sender, e) => {
+                if (e.IsChecked) {
+                    DisableAllSwitches();
+                    wifiptp.setDiscoverable(true);
+                } else {
+                    DisableAllSwitches();
+                    wifiptp.setDiscoverable(false);
+                }
+            };
 
-            nsdDiscoveryListener = new NsdDiscoveryListener(nsdManager, () => {
-                // discovery started
-                discovering = true;
-            }, () => {
-                // discovery stopped
-                discovering = false;
-            }, (NsdServiceInfo info) =>
-            {
-                // found new device -> resolve
-                string serviceName = info.ServiceName;
-
-                // don't process duplicates
-                if (!serviceName.Equals(myServiceName))
+            searchSwitch = (Switch)FindViewById(Resource.Id.searchSwitch);
+            searchSwitch.Enabled = false;
+            searchSwitch.CheckedChange += (sender, e) => {
+                if (e.IsChecked)
                 {
-                    resolveService(info);
+                    DisableAllSwitches();
+                    wifiptp.startDiscoverServices();
                 }
-            }, (NsdServiceInfo info) => {
-                // device lost, remove device
-                for (int i = 0; i < adapter.Count; i++) {
-                    MyServiceInfo d = (MyServiceInfo)adapter.GetItem(i);
-                    if (d.ServiceName.Equals(info.ServiceName)) {
-                        RunOnUiThread(() => {
-                            foundServices.Remove(d.ToString());
-                            adapter.Remove(d);
-                        });
-                        break;
-                    }
+                else
+                {
+                    DisableAllSwitches();
+                    wifiptp.stopDiscoverServices();
                 }
-            });
-
+            };
 
 			adapter = new ArrayAdapter(this, Resource.Layout.ListItem);
 			adapter.SetNotifyOnChange(true);
@@ -103,75 +90,21 @@ namespace wifiptp
 			};
 
 
+            wifiptp = new Wifiptp(serviceName, this, this);
 
-			// listen to broadcast
-            p2pServiceBroadcastReceiver = new NsdServiceBroadcastReceiver(this);
-			intentFilter = new IntentFilter();
-            intentFilter.AddAction(ServerService.SERVICE_REGISTERED_ACTION);
-
-            // start server service
-            StartService(new Intent(this, typeof(ServerService)));
-
-            // bind to service if service is already running
-            serviceConnection = new ServiceConnection((IBinder service) =>
-            {
-                this.serverService = ((ServerServiceBinder)service).GetServerService();
-                nsdManager = serverService.NsdManager;
-                Log.Info(id, "service connected");
-                if (serverService.ServiceRegistered)
-                {
-                    myServiceName = serverService.MyServiceInfo.ServiceName;
-                    Title = myServiceName;
-                }
-                else
-                {
-                    myServiceName = null;
-                    Title = "Service Not Registered";
-                }
-                serviceBound = true;
-                discover();
-            }, () =>
-            {
-                this.serverService = null;
-                Log.Info(id, "service disconnected");
-                serviceBound = false;
-            });
-
-            // bind to server service
-            if (isServiceRunning())
-                // service already started before the app
-                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.None);
-            // else the service is starting, wait till service broadcast registration complete to bind
-
+			
 		}
 
 		protected override void OnResume()
 		{
-            RegisterReceiver(p2pServiceBroadcastReceiver, intentFilter);
-            if (serviceBound) {
-                if (serverService.ServiceRegistered)
-                {
-                    myServiceName = serverService.MyServiceInfo.ServiceName;
-                    Title = myServiceName;
-                } else {
-                    myServiceName = null;
-                    Title = "Service Not Registered";
-                }
-            }
-            if (!discovering)
-                discover();
             base.OnResume();
 		}
 
 		protected override void OnPause()
 		{
-            if (discovering)
-            {
-                nsdManager.StopServiceDiscovery(nsdDiscoveryListener);
-                adapter.Clear();
-                foundServices.Clear();
-            }
-            UnregisterReceiver(p2pServiceBroadcastReceiver);
+            // TODO what to do during file transfer? task will run in background?
+            wifiptp.setDiscoverable(false);
+            wifiptp.stopDiscoverServices();
 			base.OnPause();
 		}
 
@@ -182,203 +115,156 @@ namespace wifiptp
 
         protected override void OnDestroy()
         {
-            if (serviceBound)
-            {
-                UnbindService(serviceConnection);
-                serviceBound = false;
-            }
             Log.Info(id, "Activity destroyed");
             base.OnDestroy();
         }
 
-        private void discover() {
-            if (nsdManager != null) {
-                adapter.Clear();
-                foundServices.Clear();
-                nsdManager.DiscoverServices("_backpack._tcp", NsdProtocol.DnsSd, nsdDiscoveryListener);
-			}
-        }
+        private void EnableAllSwitches() {
+            discoverableSwitch.Enabled = true;
+            searchSwitch.Enabled = true;
+        } 
 
-        private bool isServiceRunning()
-        {
-            ActivityManager manager = (ActivityManager)GetSystemService(Context.ActivityService);
-            string className = "edu.isi.wifiptp.ServerService";
-            foreach (RunningServiceInfo service in manager.GetRunningServices(Integer.MaxValue))
-            {
-                //Log.Info(id, "Found " + service.Service.ClassName);
-                if (className.Equals(service.Service.ClassName))
-                {
-                    Log.Debug(id, "Service is already running");
-                    return true;
-                }
-            }
-            Log.Debug(id, "Service has not started");
-            return false;
-        }
+        private void DisableAllSwitches() {
+            discoverableSwitch.Enabled = false;
+            searchSwitch.Enabled = false;
+        } 
 
-        private void resolveService(NsdServiceInfo info) {
-            Log.Debug(id, "Resolve service: " + info.ServiceName);
-            if (foundServices.IndexOf(info.ToString()) == -1)
-            { // avoid duplicates
-
-                nsdManager.ResolveService(info, new ServiceResolvedListener((NsdServiceInfo info1) =>
-                {
-                    Log.Debug(id, "Service resolved: " + info1.ServiceName);
-                    RunOnUiThread(() =>
-                    {
-                        if (!foundServices.Contains(info1.ToString()))
-                        {
-                            adapter.Add(new MyServiceInfo(info1.ServiceName, info1.Host, info1.Port));
-                            foundServices.Add(info1.ToString());
-                        }
-                    });
-                }, (NsdServiceInfo info1) =>
-                {
-                    // resolve failed, try again
-                    resolveService(info1);
-                }));
-            }
-        }
-
+        // client async
         public void OnTaskCompleted()
         {
-            //discover();
         }
 
-        public void OnServiceRegistered()
+
+
+        // updates from Wifiptp
+        public void NsdRegistered(string serviceName)
         {
-            // if not yet bind to service
-            if (!serviceBound) {
-                BindService(new Intent(this, typeof(ServerService)), serviceConnection, Bind.None);
-            } else {
-                myServiceName = serverService.MyServiceInfo.ServiceName;
+            RunOnUiThread(() => {
+                discoverableSwitch.Checked = true;
+                EnableAllSwitches();
+                myServiceName = serviceName;
                 Title = myServiceName;
-            }
+                discoverable = true;
+            });
         }
 
-        public void OnServiceUnregistered() {
-            myServiceName = null;
-            Title = "Service Not Registered";
-        }
-
-        private class DiscoveryCompleted : Java.Lang.Object, ITaskCompleted
+        public void NsdUnregistered()
         {
-            private readonly Action action;
-
-            public DiscoveryCompleted(Action action) {
-                this.action = action;
-            }
-
-            public void OnTaskCompleted()
-            {
-                action();
-            }
+            RunOnUiThread(() => {
+                discoverableSwitch.Checked = false;
+                discoverableSwitch.Enabled = true;
+                searchSwitch.Enabled = false;
+                myServiceName = null;
+                Title = "Service Not Registered";
+                discoverable = false;
+            });
         }
 
-
-        private class ServiceConnection : Java.Lang.Object, IServiceConnection
+        public void NsdRegistrationFailed(Wifiptp.Error error)
         {
-
-            private readonly Action<IBinder> connected;
-
-            private readonly Action disconnected;
-
-            public ServiceConnection(Action<IBinder> connected, Action disconnected) 
+            RunOnUiThread(() =>
             {
-                this.connected = connected;
-                this.disconnected = disconnected;
-            }
+                discoverableSwitch.Checked = false;
+                discoverableSwitch.Enabled = true;
+                searchSwitch.Enabled = false;
 
-            public void OnServiceConnected(ComponentName name, IBinder service)
-            {
-                connected(service);
-            }
+                if (error.Equals(Wifiptp.Error.NoWifi))
+                {
+                    // TODO let user know
+                }
+            });
+        }
 
-            public void OnServiceDisconnected(ComponentName name)
+        public void NsdUnregistrationFailed(Wifiptp.Error error)
+        {
+            RunOnUiThread(() =>
             {
-                disconnected();
-            }
+                discoverableSwitch.Checked = true;
+                EnableAllSwitches();
+
+                // let user know about error
+            });
         }
 
 
+        public void StartDiscoveryFailed(Wifiptp.Error error)
+        {
+            searchSwitch.Checked = false;
+            EnableAllSwitches();
+            searching = false;
+            if (error.Equals(Wifiptp.Error.NoWifi)) {
+                // TODO let user know
+            }
+        }
 
-		public class NsdDiscoveryListener : Java.Lang.Object, NsdManager.IDiscoveryListener
-		{
+        public void DiscoveryStarted()
+        {
+            RunOnUiThread(() =>
+            {
+                searchSwitch.Checked = true;
+                EnableAllSwitches();
+                searching = true;
+            });
+        }
 
-			private NsdManager nsdManager;
-            private Action onDiscoveryStartedAction;
-            private Action onDiscoveryStoppedAction;
-			private Action<NsdServiceInfo> onServiceFoundAction;
-            private Action<NsdServiceInfo> onServiceLostAction;
+        public void StopDiscoveryFailed(Wifiptp.Error error) {
 
-            public NsdDiscoveryListener(NsdManager nsdManager, Action onDiscoveryStartedAction, Action onDiscoveryStoppedAction, Action<NsdServiceInfo> onServiceFoundAction, Action<NsdServiceInfo> onServiceLostAction)
-			{
-				this.nsdManager = nsdManager;
-                this.onDiscoveryStartedAction = onDiscoveryStartedAction;
-                this.onDiscoveryStoppedAction = onDiscoveryStoppedAction;
-				this.onServiceFoundAction = onServiceFoundAction;
-                this.onServiceLostAction = onServiceLostAction;
-			}
+            RunOnUiThread(() =>
+            {
+                searchSwitch.Checked = true;
+                EnableAllSwitches();
+            });
+        }
 
-			public void OnDiscoveryStarted(string serviceType)
-			{
-				Log.Debug(id, "Nsd Discovery Started");
-                onDiscoveryStartedAction();
-			}
+        public void DiscoveryStopped()
+        {
+            RunOnUiThread(() =>
+            {
+                searchSwitch.Checked = false;
+                searching = false;
+                adapter.Clear();
+                EnableAllSwitches();
+            });
+        }
 
-			public void OnDiscoveryStopped(string serviceType)
-			{
-				Log.Debug(id, "Nsd Discovery Stopped");
-                onDiscoveryStoppedAction();
-			}
+        public void DeviceFound(NsdServiceInfo device) {
+            RunOnUiThread(() =>
+            {
+                adapter.Add(new MyServiceInfo(device.ServiceName, device.Host, device.Port));
+            });
+        }
 
-			public void OnServiceFound(NsdServiceInfo serviceInfo)
-			{
-				Log.Debug(id, "Service Found: " + serviceInfo);
-				onServiceFoundAction(serviceInfo);
-			}
+        public void DeviceLost(NsdServiceInfo device) {
+            RunOnUiThread(() =>
+            {
+                for (int i = 0; i < adapter.Count; i++)
+                {
+                    MyServiceInfo info = (MyServiceInfo)adapter.GetItem(i);
+                    if (device.ServiceName == info.ServiceName)
+                    {
+                        adapter.Remove(info);
+                        break;
+                    }
+                }
+            });
+        }
 
-			public void OnServiceLost(NsdServiceInfo serviceInfo)
-			{
-                Log.Debug(id, "Service Lost: " + serviceInfo);
-                onServiceLostAction(serviceInfo);
-			}
+        public void ConnectionReceived()
+        {
+           // TODO stop discovery, disable buttons and list
+        }
 
-			public void OnStartDiscoveryFailed(string serviceType, NsdFailure errorCode)
-			{
-				Log.Debug(id, "On Start Discovery Failed: " + errorCode.ToString());
-				nsdManager.StopServiceDiscovery(this);
-			}
+        public void ConnectionClosed()
+        {
+            // TODO restart discovery, enable buttons and list
+        }
 
-			public void OnStopDiscoveryFailed(string serviceType, NsdFailure errorCode)
-			{
-				Log.Debug(id, "On Stop Discovery Failed: " + errorCode.ToString());
-				nsdManager.StopServiceDiscovery(this);
-			}
-		}
+        public void FileSent()
+        {
+            throw new NotImplementedException();
+        }
 
 
-		public class ServiceResolvedListener : Java.Lang.Object, NsdManager.IResolveListener
-		{
-            private Action<NsdServiceInfo> serviceResolvedAction, resolveFailedAction;
-
-            public ServiceResolvedListener(Action<NsdServiceInfo> serviceResolvedAction, Action<NsdServiceInfo> resolveFailedAction)
-			{
-				this.serviceResolvedAction = serviceResolvedAction;
-                this.resolveFailedAction = resolveFailedAction;
-			}
-			public void OnResolveFailed(NsdServiceInfo serviceInfo, NsdFailure errorCode)
-			{
-                Log.Error(id, "Resolve " + serviceInfo.ServiceName + " Failed: " + errorCode.ToString());
-                resolveFailedAction(serviceInfo);
-			}
-
-			public void OnServiceResolved(NsdServiceInfo serviceInfo)
-			{
-				//Log.Debug(id, "Service Resolved: " + serviceInfo);
-				serviceResolvedAction(serviceInfo);
-			}
-		}
     }
 }
 

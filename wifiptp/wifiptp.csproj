@@ -50,13 +50,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ClientAsyncTask.cs" />
     <Compile Include="ITaskCompleted.cs" />
-    <Compile Include="NsdServiceBroadcastReceiver.cs" />
-    <Compile Include="NsdServiceListener.cs" />
-    <Compile Include="BootCompletedReceiver.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="ServerService.cs" />
     <Compile Include="MyServiceInfo.cs" />
-    <Compile Include="WiFiBroadcastReceiver.cs" />
+    <Compile Include="Api\Wifiptp.cs" />
+    <Compile Include="Api\FileSendingListener.cs" />
+    <Compile Include="Api\StatusChangedListener.cs" />
+    <Compile Include="Api\WiFiBroadcastReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable\" />
+    <Folder Include="Api\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
 </Project>
