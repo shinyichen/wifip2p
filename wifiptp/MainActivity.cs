@@ -20,11 +20,11 @@ namespace wifiptp
 
         private Wifiptp wifiptp;
 
-        private bool discoverable = false;
+        //private bool discoverable = false;
 
         private Switch discoverableSwitch;
 
-        private bool searching = false;
+        //private bool searching = false;
 
         private Switch searchSwitch;
 
@@ -144,7 +144,6 @@ namespace wifiptp
                 EnableAllSwitches();
                 myServiceName = serviceName;
                 Title = myServiceName;
-                discoverable = true;
             });
         }
 
@@ -156,7 +155,6 @@ namespace wifiptp
                 searchSwitch.Enabled = false;
                 myServiceName = null;
                 Title = "Service Not Registered";
-                discoverable = false;
             });
         }
 
@@ -191,7 +189,6 @@ namespace wifiptp
         {
             searchSwitch.Checked = false;
             EnableAllSwitches();
-            searching = false;
             if (error.Equals(Wifiptp.Error.NoWifi)) {
                 // TODO let user know
             }
@@ -203,7 +200,6 @@ namespace wifiptp
             {
                 searchSwitch.Checked = true;
                 EnableAllSwitches();
-                searching = true;
             });
         }
 
@@ -221,7 +217,6 @@ namespace wifiptp
             RunOnUiThread(() =>
             {
                 searchSwitch.Checked = false;
-                searching = false;
                 adapter.Clear();
                 EnableAllSwitches();
             });
