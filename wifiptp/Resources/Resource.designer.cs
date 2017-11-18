@@ -41,20 +41,58 @@ namespace wifiptp
 			}
 		}
 		
+		public partial class Color
+		{
+			
+			// aapt resource value: 0x7f050000
+			public const int cellback = 2131034112;
+			
+			static Color()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Color()
+			{
+			}
+		}
+		
+		public partial class Drawable
+		{
+			
+			// aapt resource value: 0x7f020000
+			public const int ListBackground = 2130837504;
+			
+			static Drawable()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Drawable()
+			{
+			}
+		}
+		
 		public partial class Id
 		{
 			
-			// aapt resource value: 0x7f050003
-			public const int deviceListView = 2131034115;
+			// aapt resource value: 0x7f070003
+			public const int deviceListView = 2131165187;
 			
-			// aapt resource value: 0x7f050001
-			public const int discoverableSwitch = 2131034113;
+			// aapt resource value: 0x7f070001
+			public const int discoverableSwitch = 2131165185;
 			
-			// aapt resource value: 0x7f050000
-			public const int listItemText = 2131034112;
+			// aapt resource value: 0x7f070004
+			public const int fileListView = 2131165188;
 			
-			// aapt resource value: 0x7f050002
-			public const int searchSwitch = 2131034114;
+			// aapt resource value: 0x7f070000
+			public const int listItemText = 2131165184;
+			
+			// aapt resource value: 0x7f070002
+			public const int searchSwitch = 2131165186;
+			
+			// aapt resource value: 0x7f070005
+			public const int sendButton = 2131165189;
 			
 			static Id()
 			{
@@ -69,11 +107,11 @@ namespace wifiptp
 		public partial class Layout
 		{
 			
-			// aapt resource value: 0x7f030000
-			public const int ListItem = 2130903040;
+			// aapt resource value: 0x7f040000
+			public const int ListItem = 2130968576;
 			
-			// aapt resource value: 0x7f030001
-			public const int Main = 2130903041;
+			// aapt resource value: 0x7f040001
+			public const int Main = 2130968577;
 			
 			static Layout()
 			{
@@ -88,8 +126,8 @@ namespace wifiptp
 		public partial class Mipmap
 		{
 			
-			// aapt resource value: 0x7f020000
-			public const int Icon = 2130837504;
+			// aapt resource value: 0x7f030000
+			public const int Icon = 2130903040;
 			
 			static Mipmap()
 			{
@@ -104,11 +142,11 @@ namespace wifiptp
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f040001
-			public const int app_name = 2130968577;
+			// aapt resource value: 0x7f060001
+			public const int app_name = 2131099649;
 			
-			// aapt resource value: 0x7f040000
-			public const int hello = 2130968576;
+			// aapt resource value: 0x7f060000
+			public const int hello = 2131099648;
 			
 			static String()
 			{

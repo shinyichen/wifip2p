@@ -11,7 +11,7 @@ using Android.Net.Nsd;
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, StatusChangedListener, ITaskCompleted
+    public class MainActivity : Activity, StatusChangedListener
 	{
 
         private const string id = "Backpack-Main";
@@ -20,19 +20,23 @@ namespace wifiptp
 
         private Wifiptp wifiptp;
 
-        //private bool discoverable = false;
-
         private Switch discoverableSwitch;
-
-        //private bool searching = false;
 
         private Switch searchSwitch;
 
         private List<string> foundServices = new List<string>();
 
-        private ListView listView;
+        private ListView deviceListView;
 
-        protected ArrayAdapter adapter;
+        private MyServiceInfo selectedDevice;
+
+        private ArrayAdapter deviceListadapter;
+
+        private ListView fileListView;
+
+        private ArrayAdapter fileListAdapter;
+
+        private Button sendButton;
 
         private string myServiceName;
 
@@ -71,23 +75,44 @@ namespace wifiptp
                 }
             };
 
-			adapter = new ArrayAdapter(this, Resource.Layout.ListItem);
-			adapter.SetNotifyOnChange(true);
+            // TODO single selection only
+            deviceListadapter = new ArrayAdapter(this, Resource.Layout.ListItem);
+            deviceListadapter.SetNotifyOnChange(true);
 
-			listView = FindViewById<ListView>(Resource.Id.deviceListView);
-			listView.Adapter = adapter;
+			deviceListView = FindViewById<ListView>(Resource.Id.deviceListView);
+            deviceListView.ChoiceMode = ChoiceMode.Single;
+            deviceListView.Adapter = deviceListadapter;
+            deviceListView.Enabled = false;
+            deviceListView.ItemClick += (sender, e) => {
+                e.View.Selected = true;
+                selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
+            };
 
-			listView.ItemClick += (sender, e) =>
-			{
-				int position = e.Position;
-                MyServiceInfo device = (MyServiceInfo)adapter.GetItem(position);
+            fileListAdapter = new ArrayAdapter(this, Resource.Layout.ListItem);
+            fileListAdapter.SetNotifyOnChange(true);
 
-                // connect
-                InetAddress host = device.Host;
-                int port = device.Port;
-                ClientAsyncTask task = new ClientAsyncTask(this, host, port, this);
-                task.Execute();
-			};
+            fileListView = FindViewById<ListView>(Resource.Id.fileListView);
+            fileListView.ChoiceMode = ChoiceMode.Multiple;
+            fileListView.Adapter = fileListAdapter;
+            fileListView.Enabled = false;
+
+            sendButton = FindViewById<Button>(Resource.Id.sendButton);
+            sendButton.Click += (sender, e) => {
+
+
+                // TODO get selected file
+                List<string> filePaths = new List<string>();
+
+                if (selectedDevice != null) { // TODO && filePath.Count > 0
+                    sendButton.Enabled = false;
+                    wifiptp.sendFile(selectedDevice.Host, selectedDevice.Port, filePaths);
+                    // TODO clear selections
+                }
+
+            };
+
+            // TODO enable sendButton if files and device selected
+            // TODO clear device list when search is turned off
 
 
             wifiptp = new Wifiptp(serviceName, this, this);
@@ -102,9 +127,9 @@ namespace wifiptp
 
 		protected override void OnPause()
 		{
-            // TODO what to do during file transfer? task will run in background?
-            wifiptp.setDiscoverable(false);
+            // wifiptp will handle 1) when server is listening 2) when 
             wifiptp.stopDiscoverServices();
+            wifiptp.setDiscoverable(false);
 			base.OnPause();
 		}
 
@@ -129,12 +154,16 @@ namespace wifiptp
             searchSwitch.Enabled = false;
         } 
 
-        // client async
-        public void OnTaskCompleted()
-        {
+        private void EnableLists() {
+            deviceListView.Enabled = true;
+            fileListView.Enabled = true;
         }
 
-
+        private void DisableLists()
+        {
+            deviceListView.Enabled = false;
+            fileListView.Enabled = false;
+        }
 
         // updates from Wifiptp
         public void NsdRegistered(string serviceName)
@@ -200,6 +229,7 @@ namespace wifiptp
             {
                 searchSwitch.Checked = true;
                 EnableAllSwitches();
+                EnableLists();
             });
         }
 
@@ -217,27 +247,28 @@ namespace wifiptp
             RunOnUiThread(() =>
             {
                 searchSwitch.Checked = false;
-                adapter.Clear();
+                deviceListadapter.Clear();
                 EnableAllSwitches();
+                DisableLists();
             });
         }
 
         public void DeviceFound(NsdServiceInfo device) {
             RunOnUiThread(() =>
             {
-                adapter.Add(new MyServiceInfo(device.ServiceName, device.Host, device.Port));
+                deviceListadapter.Add(new MyServiceInfo(device.ServiceName, device.Host, device.Port));
             });
         }
 
         public void DeviceLost(NsdServiceInfo device) {
             RunOnUiThread(() =>
             {
-                for (int i = 0; i < adapter.Count; i++)
+                for (int i = 0; i < deviceListadapter.Count; i++)
                 {
-                    MyServiceInfo info = (MyServiceInfo)adapter.GetItem(i);
+                    MyServiceInfo info = (MyServiceInfo)deviceListadapter.GetItem(i);
                     if (device.ServiceName == info.ServiceName)
                     {
-                        adapter.Remove(info);
+                        deviceListadapter.Remove(info);
                         break;
                     }
                 }
@@ -254,9 +285,10 @@ namespace wifiptp
             // TODO restart discovery, enable buttons and list
         }
 
+        // could be success or failure
         public void FileSent()
         {
-            throw new NotImplementedException();
+            sendButton.Enabled = true;
         }
 
 

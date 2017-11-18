@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Android.Content;
@@ -15,9 +16,9 @@ namespace wifiptp
 
         private const string id = "Client";
 
-        private Context context;
-
         private InetAddress ip;
+
+        private List<string> files;
 
         private int port;
 
@@ -25,11 +26,11 @@ namespace wifiptp
 
         private byte[] buf = new byte[1024];
 
-        public ClientAsyncTask(Context context, InetAddress ip, int port, ITaskCompleted taskCompletedListener)
+        public ClientAsyncTask(InetAddress ip, int port, List<string> files, ITaskCompleted taskCompletedListener)
         {
-            this.context = context;
             this.ip = ip;
             this.port = port;
+            this.files = files;
             this.taskCompletedListener = taskCompletedListener;
         }
 

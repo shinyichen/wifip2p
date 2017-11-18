@@ -7,10 +7,11 @@ using Android.Net.Wifi;
 using Android.Util;
 using System.Collections.Generic;
 using Android.Bluetooth;
+using Android.OS;
 
 namespace wifiptp
 {
-    public class Wifiptp
+    public class Wifiptp : ITaskCompleted
     {
 
         public const string ID = "WiFiPTP";
@@ -31,7 +32,11 @@ namespace wifiptp
 
         private ServerSocket serverSocket;
 
+        private int port;
+
         private NsdRegistrationListener nsdRegistrationListener;
+
+        private ServerAsyncTask serverTask;
 
         private NsdDiscoveryListener nsdDiscoveryListener;
 
@@ -80,12 +85,30 @@ namespace wifiptp
             // init registration listener
             nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
             {
+                // start server task, this will be listener for incoming connection
+                serverTask = new ServerAsyncTask(serverSocket);
+                serverTask.Execute();
+
                 // service registered
                 myServiceInfo = info;
                 nsdStatus = NsdStatus.Registered;
                 statusListener.NsdRegistered(myServiceInfo.ServiceName);
-            }, (NsdServiceInfo info) =>
+
+            }, (NsdServiceInfo info) => // service unregistered
             {
+
+                // socket could be 1) listening 2) transfering files
+                if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished))
+                {
+                    // must keep these two line in this sequence
+                    // if socket is just listening, close the socket and handle onCanceled
+                    // else if files are being transfered, wait until task reaches the end to handle onCanceled
+                    serverTask.Cancel(true); // mark interruption
+                    if (serverTask.IsListening)
+                        serverSocket.Close();    // interrupt the listening socket
+                    // else let transfer finish 
+                }
+
                 // service unregistered
                 myServiceInfo = null;
                 nsdStatus = NsdStatus.Unregistered;
@@ -209,7 +232,7 @@ namespace wifiptp
                     
                     // Initialize a server socket on the next available port.
                     serverSocket = new ServerSocket(0);
-                    int port = serverSocket.LocalPort;
+                    port = serverSocket.LocalPort;
 
                     // register service
                     NsdServiceInfo serviceInfo = new NsdServiceInfo();
@@ -220,6 +243,8 @@ namespace wifiptp
                     nsdStatus = NsdStatus.Registering;
                     nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
 
+                    // create server task that listens to incoming connection after reigstration is successful
+
                 } else if (wifiStatus == WifiStatus.Disconnected) { // wifi not connected, throw error
                     
                     statusListener.NsdRegistrationFailed(Error.NoWifi);
@@ -227,7 +252,6 @@ namespace wifiptp
 
             } else  // turn off, make this device undiscoverable by unregistering NSD service
             {
-                // TODO if during transfer, interrupt the transfer task
 
                 // stop searching
                 if (searchStatus == SearchStatus.Searching) {
@@ -291,12 +315,10 @@ namespace wifiptp
         }
 
 
-        public void sendFile(NsdServiceInfo device, string filePath) {
+        public void sendFile(InetAddress host, int port, List<string> filePaths) {
 
-            // TODO
-
-            // notify when file sent or failed
-            statusListener.FileSent();
+            ClientAsyncTask clientTask = new ClientAsyncTask(host, port, filePaths, this);
+            clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running
         }
 
         private Error NsdFailureToError(NsdFailure f) {
@@ -312,6 +334,12 @@ namespace wifiptp
             }
         }
 
+        // client asyn completed
+        public void OnTaskCompleted()
+        {
+            // notify
+            statusListener.FileSent();
+        }
     }
 
 
