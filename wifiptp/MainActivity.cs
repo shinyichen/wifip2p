@@ -127,9 +127,8 @@ namespace wifiptp
 
 		protected override void OnPause()
 		{
-            // wifiptp will handle 1) when server is listening 2) when 
-            wifiptp.stopDiscoverServices();
-            wifiptp.setDiscoverable(false);
+
+            wifiptp.setDiscoverable(false); // this includes stop searching
 			base.OnPause();
 		}
 

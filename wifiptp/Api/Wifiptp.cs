@@ -87,7 +87,7 @@ namespace wifiptp
             {
                 // start server task, this will be listener for incoming connection
                 serverTask = new ServerAsyncTask(serverSocket);
-                serverTask.Execute();
+                serverTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor);
 
                 // service registered
                 myServiceInfo = info;
