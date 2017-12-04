@@ -30,6 +30,8 @@ namespace wifiptp
 
         private MyServiceInfo selectedDevice;
 
+        private int selectedPosition = -1;
+
         private ArrayAdapter deviceListadapter;
 
         private ListView fileListView;
@@ -75,7 +77,7 @@ namespace wifiptp
                 }
             };
 
-            // TODO single selection only
+            // single selection only
             deviceListadapter = new ArrayAdapter(this, Resource.Layout.ListItem);
             deviceListadapter.SetNotifyOnChange(true);
 
@@ -84,8 +86,16 @@ namespace wifiptp
             deviceListView.Adapter = deviceListadapter;
             deviceListView.Enabled = false;
             deviceListView.ItemClick += (sender, e) => {
-                e.View.Selected = true;
-                selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
+                if (selectedPosition == e.Position) {
+                    // deselect
+                    selectedPosition = -1;
+                    selectedDevice = null;
+                } 
+                else {
+                    e.View.Selected = true;
+                    selectedPosition = e.Position;
+                    selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
+                }
             };
 
             fileListAdapter = new ArrayAdapter(this, Resource.Layout.ListItem);
