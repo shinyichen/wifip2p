@@ -8,6 +8,7 @@ using Android.Util;
 using System.Collections.Generic;
 using Android.Bluetooth;
 using Android.OS;
+using Java.IO;
 
 namespace wifiptp
 {
@@ -86,7 +87,7 @@ namespace wifiptp
             nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
             {
                 // start server task, this will be listener for incoming connection
-                serverTask = new ServerAsyncTask(serverSocket);
+                serverTask = new ServerAsyncTask(serverSocket, context.GetExternalFilesDir(null));
                 serverTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor);
 
                 // service registered
@@ -315,9 +316,9 @@ namespace wifiptp
         }
 
 
-        public void sendFile(InetAddress host, int port, List<string> filePaths) {
+        public void sendFile(InetAddress host, int port, List<File> files) {
 
-            ClientAsyncTask clientTask = new ClientAsyncTask(host, port, filePaths, this);
+            ClientAsyncTask clientTask = new ClientAsyncTask(host, port, files, this);
             clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running
         }
 

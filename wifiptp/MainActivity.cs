@@ -7,6 +7,7 @@ using Java.Net;
 using System;
 using wifiptp.Api;
 using Android.Net.Nsd;
+using Java.IO;
 
 namespace wifiptp
 {
@@ -28,9 +29,9 @@ namespace wifiptp
 
         private ListView deviceListView;
 
-        private MyServiceInfo selectedDevice;
+        //private MyServiceInfo selectedDevice;
 
-        private int selectedPosition = -1;
+        //private int selectedPosition = -1;
 
         private ArrayAdapter deviceListadapter;
 
@@ -78,44 +79,68 @@ namespace wifiptp
             };
 
             // single selection only
-            deviceListadapter = new ArrayAdapter(this, Resource.Layout.ListItem);
+            deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
             deviceListadapter.SetNotifyOnChange(true);
 
 			deviceListView = FindViewById<ListView>(Resource.Id.deviceListView);
             deviceListView.ChoiceMode = ChoiceMode.Single;
             deviceListView.Adapter = deviceListadapter;
             deviceListView.Enabled = false;
-            deviceListView.ItemClick += (sender, e) => {
-                if (selectedPosition == e.Position) {
-                    // deselect
-                    selectedPosition = -1;
-                    selectedDevice = null;
-                } 
-                else {
-                    e.View.Selected = true;
-                    selectedPosition = e.Position;
-                    selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
-                }
-            };
+            //deviceListView.ItemClick += (sender, e) => {
+            //    if (selectedPosition == e.Position) {
+            //        // deselect
+            //        selectedPosition = -1;
+            //        selectedDevice = null;
+            //    } 
+            //    else {
+            //        e.View.Selected = true;
+            //        selectedPosition = e.Position;
+            //        selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
+            //    }
+            //};
 
-            fileListAdapter = new ArrayAdapter(this, Resource.Layout.ListItem);
+            // file list view
+            fileListAdapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemMultipleChoice);
             fileListAdapter.SetNotifyOnChange(true);
 
             fileListView = FindViewById<ListView>(Resource.Id.fileListView);
             fileListView.ChoiceMode = ChoiceMode.Multiple;
             fileListView.Adapter = fileListAdapter;
             fileListView.Enabled = false;
+            //fileListView.ItemClick += (sender, e) =>
+            //{
+            //    //SparseBooleanArray selected = fileListView.CheckedItemPositions;
+            //    //e.View.Selected = true;
+
+            //};
+
+            // app file list 
+            File[] files = GetExternalFilesDir(null).ListFiles();
+            fileListAdapter.AddAll(files);
 
             sendButton = FindViewById<Button>(Resource.Id.sendButton);
             sendButton.Click += (sender, e) => {
 
 
-                // TODO get selected file
-                List<string> filePaths = new List<string>();
+                // get selected files
+                int pos;
+                SparseBooleanArray selected = fileListView.CheckedItemPositions;
+                List<File> selectedFiles = new List<File>();
+                for (int i = 0; i < selected.Size(); i++) {
+                    pos = selected.KeyAt(i);
+                    if (selected.ValueAt(i)) { // selected
+                        selectedFiles.Add((File)fileListAdapter.GetItem(pos));
+                    }
+                }
 
-                if (selectedDevice != null) { // TODO && filePath.Count > 0
+                // get selected device
+                pos = deviceListView.CheckedItemPosition;
+                MyServiceInfo selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(pos);
+
+                // send
+                if (selectedDevice != null && selectedFiles.Count > 0) { 
                     sendButton.Enabled = false;
-                    wifiptp.sendFile(selectedDevice.Host, selectedDevice.Port, filePaths);
+                    wifiptp.sendFile(selectedDevice.Host, selectedDevice.Port, selectedFiles);
                     // TODO clear selections
                 }
 

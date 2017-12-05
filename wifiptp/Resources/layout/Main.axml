@@ -2,36 +2,48 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    android:padding="5dp">
     <Switch
         android:id="@+id/discoverableSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:checked="false"
-        android:text="Discoverable" />
+        android:text="Discoverable"
+        style="@android:style/TextAppearance.Medium" />
     <Switch
         android:id="@+id/searchSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:checked="false"
-        android:text="Search" />
+        android:text="Search"
+        android:paddingTop="5dp"
+        style="@android:style/TextAppearance.Medium" />
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Devices" />
+        android:text="Devices"
+        android:paddingTop="5dp"
+        style="@android:style/TextAppearance.Medium" />
     <ListView
         android:id="@+id/deviceListView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="150dp"
+        android:paddingTop="5dp"
+        android:scrollbars="vertical"
         android:choiceMode="singleChoice" />
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Files" />
+        android:text="Files"
+        android:paddingTop="5dp"
+        style="@android:style/TextAppearance.Medium" />
     <ListView
         android:id="@+id/fileListView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="150dp"
+        android:paddingTop="5dp"
+        android:scrollbars="vertical"
         android:choiceMode="multipleChoice" />
     <Button
         android:id="@+id/sendButton"
