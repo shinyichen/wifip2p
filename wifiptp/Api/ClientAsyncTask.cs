@@ -62,16 +62,26 @@ namespace wifiptp
                 foreach (Java.IO.File file in files) {
                     if (file.Exists()) {
 
-                        Log.Info("Client", "Sending file " + count + 1);
+                        Log.Info(id, "Sending file " + count + 1);
 
-                        // 1.1 send size of file as a 64-bit (8 bytes) long integer
-                        Log.Info("Client", "Sending file size to server");
+                        // 1.1 send file name size as long integer
+                        Log.Debug(id, "Sending file name size to server");
+                        byte[] name = Encoding.ASCII.GetBytes(file.Name);
+                        sizeData = BitConverter.GetBytes(name.LongLength);
+                        outputStream.Write(sizeData, 0, sizeof(long));
+
+                        // 1.2 send file name
+                        Log.Debug(id, "Sending file name to server");
+                        outputStream.Write(name, 0, name.Length);
+
+                        // 1.3 send size of file as a 64-bit (8 bytes) long integer
+                        Log.Info(id, "Sending file size to server");
                         fileStream = new FileStream(file.AbsolutePath, FileMode.Open, FileAccess.Read);
                         sizeData = BitConverter.GetBytes(fileStream.Length);
                         outputStream.Write(sizeData, 0, sizeof(long));
 
-                        // 1.2 send file
-                        Log.Info("Client", "Sending file to server");
+                        // 1.4 send file
+                        Log.Info(id, "Sending file to server");
                         buf = new byte[fileStream.Length];
                         int bytesToRead = (int)fileStream.Length;
                         int bytesRead = 0;
@@ -91,26 +101,21 @@ namespace wifiptp
                             bytesToRead -= len;
                         } while (bytesToRead > 0);
 
-                        Log.Info("Client", bytesRead + " bytes sent");
+                        Log.Info(id, bytesRead + " bytes sent");
 
                         count++;
 
                         // wait for client's response
-                        Log.Info("Client", "Waiting to hear from server");
+                        Log.Info(id, "Waiting to hear from server");
                         while (!inputStream.IsDataAvailable()) { }
                         inputStream.Read(buf, 0, sizeof(long));
                     }
                 }
 
-                // 1.1 send 0 as a 64-bit long integer to indicate end
+                // send 0 as a 64-bit long integer to indicate end
                 Log.Info(id, "Finished. Send end signal");
                 sizeData = BitConverter.GetBytes((long)0);
                 outputStream.Write(sizeData, 0, sizeof(long));
-
-                // indicate done
-                //Log.Info(id, "Send Done");
-                //byte[] done = Encoding.ASCII.GetBytes("done");
-                //outputStream.Write(done, 0, done.Length);
 
                 return "Success";
 

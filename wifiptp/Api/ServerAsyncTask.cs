@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using Android.OS;
 using Android.Util;
 using Java.Lang;
@@ -10,7 +11,7 @@ namespace wifiptp.Api
     public class ServerAsyncTask : AsyncTask
     {
         
-        private const string ID = "ServerService";
+        private const string id = "ServerService";
         
         private ServerSocket serverSocket;
 
@@ -45,7 +46,7 @@ namespace wifiptp.Api
         protected override Java.Lang.Object DoInBackground(params Java.Lang.Object[] @params)
         {
 
-            Log.Debug(ID, "Server Task started");
+            Log.Debug(id, "Server Task started");
 
             while (true) // restarting socket after each connection
             {
@@ -62,35 +63,45 @@ namespace wifiptp.Api
                     Socket client = serverSocket.Accept();
                     isListening = false;
 
-                    Log.Info("Server", "Received incoming connection ");
+                    Log.Info(id, "Received incoming connection ");
                     inputStream = client.InputStream;
                     outputStream = client.OutputStream;
 
-                    int count = 0;
-                    while (true) { // receive files until got file size 0
-                        
-                        // 1.1 receive file size (as long) from client
+                    while (true) { // receive files until got 0 (indicate end)
+
+                        // 1.1 receive file name size 
+                        Log.Debug(id, "Receiving file name size from client");
                         inputStream.Read(buf, 0, sizeof(long));
-                        long size = BitConverter.ToInt64(buf, 0);
+                        int size = (int)BitConverter.ToInt64(buf, 0);
+
+                        Log.Debug(id, "Got end signal from client. Ending");
                         if (size == 0) // done
-                            break; 
+                            break;
 
-                        Log.Debug("Server", "Receiving file " + count + 1);
-                        Log.Info("Server", "Expecting file size: " + size + " bytes");
+                        // 1.2 receive file name
+                        Log.Debug(id, "Receiving file name from client");
+                        byte[] name = new byte[size];
+                        inputStream.Read(name, 0, size);
+                        string filename = Encoding.Default.GetString(name);
 
-                        // 1.2 receive image from client
+                        // 1.3 receive file size (as long) from client
+                        inputStream.Read(buf, 0, sizeof(long));
+                        size = (int)BitConverter.ToInt64(buf, 0);
+
+                        Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
+
+                        // 1.4 receive image from client
                         if (size > 0)
                         {
-                            Log.Info("Server", "Receiving file from client");
-                            string fileName = "wifip2p - " + JavaSystem.CurrentTimeMillis() + ".jpg"; // TODO use original name
-                            Java.IO.File imageFile = new Java.IO.File(fileDirectory, fileName);
+                            Log.Info(id, "Receiving file from client");
+                            Java.IO.File imageFile = new Java.IO.File(fileDirectory, filename);
                             imageFile.CreateNewFile();
                             imageFileStream = new FileStream(imageFile.AbsolutePath, FileMode.Create, FileAccess.Write, FileShare.None);
                             Utils.CopyStream(inputStream, imageFileStream, size);
                             imageFileStream.Flush();
 
-                            Log.Info("Server", "Received file length: " + imageFileStream.Length);
-                            Log.Info("Server", "Write to file length: " + imageFile.Length());
+                            Log.Info(id, "Received file length: " + imageFileStream.Length);
+                            Log.Info(id, "Write to file length: " + imageFile.Length());
                         }
 
                         // send 0 to signal received
@@ -98,7 +109,7 @@ namespace wifiptp.Api
                         outputStream.Write(sizeData, 0, sizeof(long));
 
                         // wait for clinet response 
-                        Log.Info(ID, "Wait for client to send next");
+                        Log.Info(id, "Wait for client to send next");
                         while (!inputStream.IsDataAvailable()) { }
 
 
@@ -134,7 +145,7 @@ namespace wifiptp.Api
         // Otherwise this task will loop and listen forever
         protected override void OnCancelled()
         {
-            Log.Debug(ID, "Task Canceled");
+            Log.Debug(id, "Task Canceled");
             if (!serverSocket.IsClosed)
                 serverSocket.Close();
             base.OnCancelled();
