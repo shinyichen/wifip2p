@@ -29,12 +29,14 @@ namespace wifiptp.Api
 
         private bool isListening = false;
 
+        private ITaskProgress taskListener;
 
-        public ServerAsyncTask(ServerSocket serverSocket, Java.IO.File directory)
+        public ServerAsyncTask(ServerSocket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
         {
             this.serverSocket = serverSocket;
             this.port = serverSocket.LocalPort;
             this.fileDirectory = directory;
+            this.taskListener = taskListener;
         }
 
         public bool IsListening {
@@ -108,6 +110,9 @@ namespace wifiptp.Api
                         byte[] sizeData = BitConverter.GetBytes((long)0);
                         outputStream.Write(sizeData, 0, sizeof(long));
 
+                        // files received
+                        PublishProgress();
+
                         // wait for clinet response 
                         Log.Info(id, "Wait for client to send next");
                         while (!inputStream.IsDataAvailable()) { }
@@ -139,6 +144,12 @@ namespace wifiptp.Api
                 }
             } // while
 
+        }
+
+        protected override void OnProgressUpdate(params Java.Lang.Object[] values)
+        {
+            taskListener.OnFilesReceived();
+            base.OnProgressUpdate(values);
         }
 
         // This is called to end the server task

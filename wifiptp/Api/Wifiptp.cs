@@ -12,10 +12,12 @@ using Java.IO;
 
 namespace wifiptp
 {
-    public class Wifiptp : ITaskCompleted
+    public class Wifiptp : ITaskProgress
     {
 
         public const string ID = "WiFiPTP";
+
+        public static string INTENT_FILE_RECEIVED = "file_received";
 
         private string serviceName;
 
@@ -87,7 +89,7 @@ namespace wifiptp
             nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
             {
                 // start server task, this will be listener for incoming connection
-                serverTask = new ServerAsyncTask(serverSocket, context.GetExternalFilesDir(null));
+                serverTask = new ServerAsyncTask(serverSocket, context.GetExternalFilesDir(null), this);
                 serverTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor);
 
                 // service registered
@@ -335,11 +337,15 @@ namespace wifiptp
             }
         }
 
+        public void OnFilesReceived() {
+            statusListener.FilesReceived();
+        }
+
         // client asyn completed
         public void OnTaskCompleted()
         {
             // notify
-            statusListener.FileSent();
+            statusListener.FilesSent();
         }
     }
 

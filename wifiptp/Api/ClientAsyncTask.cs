@@ -22,16 +22,16 @@ namespace wifiptp
 
         private int port;
 
-        private ITaskCompleted taskCompletedListener;
+        private ITaskProgress taskListener;
 
         private byte[] buf = new byte[1024];
 
-        public ClientAsyncTask(InetAddress ip, int port, List<Java.IO.File> files, ITaskCompleted taskCompletedListener)
+        public ClientAsyncTask(InetAddress ip, int port, List<Java.IO.File> files, ITaskProgress taskListener)
         {
             this.ip = ip;
             this.port = port;
             this.files = files;
-            this.taskCompletedListener = taskCompletedListener;
+            this.taskListener = taskListener;
         }
 
         protected override Java.Lang.Object DoInBackground(params Java.Lang.Object[] @params)
@@ -148,7 +148,7 @@ namespace wifiptp
 
         protected override void OnPostExecute(Java.Lang.Object result)
         {
-            taskCompletedListener.OnTaskCompleted();
+            taskListener.OnTaskCompleted();
         }
     }
 }

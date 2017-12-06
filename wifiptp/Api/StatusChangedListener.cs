@@ -20,6 +20,7 @@ namespace wifiptp.Api
 
         void ConnectionReceived(); // TODO
         void ConnectionClosed(); // TODO
-        void FileSent(); // include parameter
+        void FilesSent(); // include parameter
+        void FilesReceived();
     }
 }

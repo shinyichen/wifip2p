@@ -8,6 +8,7 @@ using System;
 using wifiptp.Api;
 using Android.Net.Nsd;
 using Java.IO;
+using Android.Support.V4.Content;
 
 namespace wifiptp
 {
@@ -86,18 +87,6 @@ namespace wifiptp
             deviceListView.ChoiceMode = ChoiceMode.Single;
             deviceListView.Adapter = deviceListadapter;
             deviceListView.Enabled = false;
-            //deviceListView.ItemClick += (sender, e) => {
-            //    if (selectedPosition == e.Position) {
-            //        // deselect
-            //        selectedPosition = -1;
-            //        selectedDevice = null;
-            //    } 
-            //    else {
-            //        e.View.Selected = true;
-            //        selectedPosition = e.Position;
-            //        selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(e.Position);
-            //    }
-            //};
 
             // file list view
             fileListAdapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemMultipleChoice);
@@ -107,12 +96,6 @@ namespace wifiptp
             fileListView.ChoiceMode = ChoiceMode.Multiple;
             fileListView.Adapter = fileListAdapter;
             fileListView.Enabled = false;
-            //fileListView.ItemClick += (sender, e) =>
-            //{
-            //    //SparseBooleanArray selected = fileListView.CheckedItemPositions;
-            //    //e.View.Selected = true;
-
-            //};
 
             // app file list 
             File[] files = GetExternalFilesDir(null).ListFiles();
@@ -151,9 +134,8 @@ namespace wifiptp
 
 
             wifiptp = new Wifiptp(serviceName, this, this);
-
-			
-		}
+         
+        }
 
 		protected override void OnResume()
 		{
@@ -320,9 +302,16 @@ namespace wifiptp
         }
 
         // could be success or failure
-        public void FileSent()
+        public void FilesSent()
         {
             sendButton.Enabled = true;
+        }
+
+        public void FilesReceived() {
+            // refresh file list
+            fileListAdapter.Clear();
+            File[] files = GetExternalFilesDir(null).ListFiles();
+            fileListAdapter.AddAll(files);
         }
 
 
