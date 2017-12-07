@@ -30,10 +30,6 @@ namespace wifiptp
 
         private ListView deviceListView;
 
-        //private MyServiceInfo selectedDevice;
-
-        //private int selectedPosition = -1;
-
         private ArrayAdapter deviceListadapter;
 
         private ListView fileListView;
@@ -98,7 +94,7 @@ namespace wifiptp
             fileListView.Enabled = false;
 
             // app file list 
-            File[] files = GetExternalFilesDir(null).ListFiles();
+            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
             fileListAdapter.AddAll(files);
 
             sendButton = FindViewById<Button>(Resource.Id.sendButton);
@@ -310,11 +306,20 @@ namespace wifiptp
         public void FilesReceived() {
             // refresh file list
             fileListAdapter.Clear();
-            File[] files = GetExternalFilesDir(null).ListFiles();
+            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
             fileListAdapter.AddAll(files);
         }
 
 
+    }
+
+    public class VisibleFilesFilter : Java.Lang.Object, IFileFilter
+    {
+
+        public bool Accept(File pathname)
+        {
+            return !pathname.IsHidden;
+        }
     }
 }
 
