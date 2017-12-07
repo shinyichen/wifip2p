@@ -86,7 +86,8 @@
     <Compile Include="Api\WiFiBroadcastReceiver.cs" />
     <Compile Include="Api\ClientAsyncTask.cs" />
     <Compile Include="Api\ServerAsyncTask.cs" />
-    <Compile Include="Api\ITaskCompleted.cs" />
+    <Compile Include="Api\ITaskProgress.cs" />
+    <Compile Include="MyFile.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

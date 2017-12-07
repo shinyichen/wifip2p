@@ -40,7 +40,7 @@ namespace wifiptp
 
         public override string ToString()
         {
-            return serviceName + "\n" + host + ":" + port;
+            return serviceName;
         }
     }
 }

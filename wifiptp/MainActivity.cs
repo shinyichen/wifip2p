@@ -95,7 +95,9 @@ namespace wifiptp
 
             // app file list 
             File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
-            fileListAdapter.AddAll(files);
+            foreach (File file in files){
+                fileListAdapter.Add(new MyFile(file));
+            }
 
             sendButton = FindViewById<Button>(Resource.Id.sendButton);
             sendButton.Click += (sender, e) => {
@@ -108,7 +110,7 @@ namespace wifiptp
                 for (int i = 0; i < selected.Size(); i++) {
                     pos = selected.KeyAt(i);
                     if (selected.ValueAt(i)) { // selected
-                        selectedFiles.Add((File)fileListAdapter.GetItem(pos));
+                        selectedFiles.Add(((MyFile)fileListAdapter.GetItem(pos)).File);
                     }
                 }
 

@@ -73,14 +73,14 @@ namespace wifiptp
             NoWifi, NsdNotRegistered, AlreadyActive, InternalError, FailureMaxLimit, Other
         };
 
-        public Wifiptp(string serviceName, Context context, StatusChangedListener listener)
+        public Wifiptp(string service, Context context, StatusChangedListener listener)
         {
             // Use bluetooth name for device name
             deviceName = BluetoothAdapter.DefaultAdapter.Name;
             deviceName = deviceName.Replace(" ", "_");
 
-            this.serviceName = serviceName + "_" + deviceName;
-            this.serviceType = "_" + serviceName + "._tcp";
+            this.serviceName = service + "_" + deviceName;
+            this.serviceType = "_" + service + "._tcp";
             this.context = context;
             this.statusListener = listener;
             nsdManager = (NsdManager)context.GetSystemService(Context.NsdService);
@@ -239,7 +239,7 @@ namespace wifiptp
 
                     // register service
                     NsdServiceInfo serviceInfo = new NsdServiceInfo();
-                    serviceInfo.ServiceName = serviceName + "_" + deviceName;
+                    serviceInfo.ServiceName = serviceName;
                     serviceInfo.ServiceType = serviceType;
                     serviceInfo.Port = port;
 
