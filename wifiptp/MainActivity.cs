@@ -309,7 +309,10 @@ namespace wifiptp
             // refresh file list
             fileListAdapter.Clear();
             File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
-            fileListAdapter.AddAll(files);
+            foreach (File file in files)
+            {
+                fileListAdapter.Add(new MyFile(file));
+            }
         }
 
 
