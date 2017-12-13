@@ -2,13 +2,14 @@
 using Android.Content;
 using wifiptp.Api;
 using Android.Net.Nsd;
-using Java.Net;
 using Android.Net.Wifi;
 using Android.Util;
 using System.Collections.Generic;
 using Android.Bluetooth;
 using Android.OS;
 using Java.IO;
+using System.Net.Sockets;
+using System.Net;
 
 namespace wifiptp
 {
@@ -33,7 +34,7 @@ namespace wifiptp
 
         private NsdManager nsdManager;
 
-        private ServerSocket serverSocket;
+        private Socket serverSocket;
 
         private int port;
 
@@ -108,7 +109,9 @@ namespace wifiptp
                     // else if files are being transfered, wait until task reaches the end to handle onCanceled
                     serverTask.Cancel(true); // mark interruption
                     if (serverTask.IsListening)
+                    {
                         serverSocket.Close();    // interrupt the listening socket
+                    }
                     // else let transfer finish 
                 }
 
@@ -232,10 +235,14 @@ namespace wifiptp
             {
                 // if NSD is not registered & wifi is connected
                 if (nsdStatus == NsdStatus.Unregistered && wifiStatus == WifiStatus.Connected) {
-                    
+
                     // Initialize a server socket on the next available port.
-                    serverSocket = new ServerSocket(0);
-                    port = serverSocket.LocalPort;
+                    IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                    IPAddress ipAddress = ipHost.AddressList[0];
+                    IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 0);
+                    serverSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                    serverSocket.Bind(ipEndPoint);
+                    port = ((IPEndPoint)serverSocket.LocalEndPoint).Port;
 
                     // register service
                     NsdServiceInfo serviceInfo = new NsdServiceInfo();
@@ -266,7 +273,11 @@ namespace wifiptp
                     nsdStatus = NsdStatus.Unregistering;
                     nsdManager.UnregisterService(nsdRegistrationListener);
                     Log.Debug(ID, "Closing socket");
-                    serverSocket.Close();
+                    //if (serverSocket.Connected)
+                        //serverSocket.Shutdown(SocketShutdown.Both);
+                    // server socket should be listening right now (TODO: disable switch when sending/receiving)
+                    //serverSocket.Close();
+                    // server socket will be closed when service unregistered 
                 }
             }
                 
@@ -318,7 +329,7 @@ namespace wifiptp
         }
 
 
-        public void sendFile(InetAddress host, int port, List<File> files) {
+        public void sendFile(Java.Net.InetAddress host, int port, List<File> files) {
 
             ClientAsyncTask clientTask = new ClientAsyncTask(host, port, files, this);
             clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running

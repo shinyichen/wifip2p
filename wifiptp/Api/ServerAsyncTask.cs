@@ -3,8 +3,8 @@ using System.IO;
 using System.Text;
 using Android.OS;
 using Android.Util;
-using Java.Lang;
-using Java.Net;
+using System.Net.Sockets;
+using System.Net;
 
 namespace wifiptp.Api
 {
@@ -13,17 +13,13 @@ namespace wifiptp.Api
         
         private const string id = "ServerService";
         
-        private ServerSocket serverSocket;
+        private Socket serverSocket;
 
         private Java.IO.File fileDirectory;
 
         private int port;
 
-        private Stream inputStream = null, outputStream = null;
-
-        private FileStream fileStream = null;
-
-        private FileStream imageFileStream = null;
+        private FileStream outFileStream = null;
 
         private byte[] buf = new byte[1024];
 
@@ -31,10 +27,10 @@ namespace wifiptp.Api
 
         private ITaskProgress taskListener;
 
-        public ServerAsyncTask(ServerSocket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
+        public ServerAsyncTask(Socket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
         {
             this.serverSocket = serverSocket;
-            this.port = serverSocket.LocalPort;
+            this.port = ((IPEndPoint)serverSocket.LocalEndPoint).Port;
             this.fileDirectory = directory;
             this.taskListener = taskListener;
         }
@@ -56,38 +52,35 @@ namespace wifiptp.Api
                 try
                 {
                     // wait for client connection
-                    if (serverSocket.IsClosed)
-                    {
-                        serverSocket = new ServerSocket(port);
-                    }
-
                     isListening = true;
+                    serverSocket.Listen(1);
                     Socket client = serverSocket.Accept();
                     isListening = false;
 
                     Log.Info(id, "Received incoming connection ");
-                    inputStream = client.InputStream;
-                    outputStream = client.OutputStream;
 
                     while (true) { // receive files until got 0 (indicate end)
 
                         // 1.1 receive file name size 
                         Log.Debug(id, "Receiving file name size from client");
-                        inputStream.Read(buf, 0, sizeof(long));
+                        client.Receive(buf, sizeof(long), SocketFlags.None);
+                        //inputStream.Read(buf, 0, sizeof(long));
                         int size = (int)BitConverter.ToInt64(buf, 0);
 
-                        Log.Debug(id, "Got end signal from client. Ending");
-                        if (size == 0) // done
+                        if (size == 0)
+                        {// done
+                            Log.Debug(id, "Got end signal from client. Ending");
                             break;
+                        }
 
                         // 1.2 receive file name
                         Log.Debug(id, "Receiving file name from client");
                         byte[] name = new byte[size];
-                        inputStream.Read(name, 0, size);
+                        client.Receive(name, size, SocketFlags.None);
                         string filename = Encoding.Default.GetString(name);
 
                         // 1.3 receive file size (as long) from client
-                        inputStream.Read(buf, 0, sizeof(long));
+                        client.Receive(buf, sizeof(long), SocketFlags.None);
                         size = (int)BitConverter.ToInt64(buf, 0);
 
                         Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
@@ -96,40 +89,28 @@ namespace wifiptp.Api
                         if (size > 0)
                         {
                             Log.Info(id, "Receiving file from client");
-                            Java.IO.File imageFile = new Java.IO.File(fileDirectory, filename);
-                            imageFile.CreateNewFile();
-                            imageFileStream = new FileStream(imageFile.AbsolutePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                            Utils.CopyStream(inputStream, imageFileStream, size);
-                            imageFileStream.Flush();
+                            outFileStream = File.Create(fileDirectory + "/" + filename);
+                            Utils.CopyStream(client, outFileStream, size);
+                            outFileStream.Flush();
 
-                            Log.Info(id, "Received file length: " + imageFileStream.Length);
-                            Log.Info(id, "Write to file length: " + imageFile.Length());
+                            Log.Info(id, "Received file length: " + outFileStream.Length);
                         }
 
                         // send 0 to signal received
                         byte[] sizeData = BitConverter.GetBytes((long)0);
-                        outputStream.Write(sizeData, 0, sizeof(long));
+                        client.Send(sizeData, sizeof(long), SocketFlags.None);
 
                         // files received
                         PublishProgress();
 
                         // wait for clinet response 
                         Log.Info(id, "Wait for client to send next");
-                        while (!inputStream.IsDataAvailable()) { }
+                        while(client.Available == 0) {}
 
 
                     } // while more files to receive
 
-                    if (outputStream != null)
-                        outputStream.Close();
-                    if (inputStream != null)
-                        inputStream.Close();
-                    if (fileStream != null)
-                        fileStream.Close();
-                    if (imageFileStream != null)
-                        imageFileStream.Close();
-
-                    serverSocket.Close();
+                    serverSocket.Disconnect(true);
 
                     // catch interruption if any or go back to listening
                     if (IsCancelled)
@@ -157,8 +138,12 @@ namespace wifiptp.Api
         protected override void OnCancelled()
         {
             Log.Debug(id, "Task Canceled");
-            if (!serverSocket.IsClosed)
+            try {
                 serverSocket.Close();
+            } catch (ObjectDisposedException) {
+                // already disposed
+            }
+
             base.OnCancelled();
         }
     }
