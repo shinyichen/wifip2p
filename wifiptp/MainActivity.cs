@@ -9,6 +9,7 @@ using wifiptp.Api;
 using Android.Net.Nsd;
 using Java.IO;
 using Android.Support.V4.Content;
+using System.Net;
 
 namespace wifiptp
 {
@@ -106,11 +107,11 @@ namespace wifiptp
                 // get selected files
                 int pos;
                 SparseBooleanArray selected = fileListView.CheckedItemPositions;
-                List<File> selectedFiles = new List<File>();
+                List<string> selectedFiles = new List<string>();
                 for (int i = 0; i < selected.Size(); i++) {
                     pos = selected.KeyAt(i);
                     if (selected.ValueAt(i)) { // selected
-                        selectedFiles.Add(((MyFile)fileListAdapter.GetItem(pos)).File);
+                        selectedFiles.Add(((MyFile)fileListAdapter.GetItem(pos)).File.AbsolutePath);
                     }
                 }
 
@@ -121,7 +122,9 @@ namespace wifiptp
                 // send
                 if (selectedDevice != null && selectedFiles.Count > 0) { 
                     sendButton.Enabled = false;
-                    wifiptp.sendFile(selectedDevice.Host, selectedDevice.Port, selectedFiles);
+                    IPAddress ipAddress = new IPAddress(selectedDevice.Host.GetAddress());
+                    IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, selectedDevice.Port);
+                    wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
                     // TODO clear selections
                 }
 

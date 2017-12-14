@@ -30,7 +30,7 @@ namespace wifiptp
 					size -= bytesRead;
 					if (size < bufSize)
 						bufSize = (int)size;
-					Log.Info("CopyStream", "loop: " + totalBytes);
+					//Log.Info("CopyStream", "loop: " + totalBytes);
 				}
 
 			}
@@ -56,7 +56,7 @@ namespace wifiptp
                     size -= bytesRead;
                     if (size < bufSize)
                         bufSize = (int)size;
-                    Log.Info("CopyStream", "loop: " + totalBytes);
+                    //Log.Info("CopyStream", "loop: " + totalBytes);
                 }
 
             }

@@ -329,9 +329,10 @@ namespace wifiptp
         }
 
 
-        public void sendFile(Java.Net.InetAddress host, int port, List<File> files) {
+        public void sendFile(IPAddress ipAddress, IPEndPoint endpoint, List<string> files) {
 
-            ClientAsyncTask clientTask = new ClientAsyncTask(host, port, files, this);
+            Socket clientSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+            ClientAsyncTask clientTask = new ClientAsyncTask(clientSocket, endpoint, files, this);
             clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running
         }
 

@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
-using Android.Content;
-using Android.Net.Wifi.P2p;
 using Android.OS;
 using Android.Util;
-using Java.Lang;
-using Java.Net;
 
 namespace wifiptp
 {
@@ -16,20 +14,20 @@ namespace wifiptp
 
         private const string id = "Client";
 
-        private InetAddress ip;
+        private Socket clientSocket;
 
-        private List<Java.IO.File> files;
+        private IPEndPoint remoteEP;
 
-        private int port;
+        private List<string> files;
 
         private ITaskProgress taskListener;
 
         private byte[] buf = new byte[1024];
 
-        public ClientAsyncTask(InetAddress ip, int port, List<Java.IO.File> files, ITaskProgress taskListener)
+        public ClientAsyncTask(Socket clientSocket, IPEndPoint remoteEP, List<string> files, ITaskProgress taskListener)
         {
-            this.ip = ip;
-            this.port = port;
+            this.clientSocket = clientSocket;
+            this.remoteEP = remoteEP;
             this.files = files;
             this.taskListener = taskListener;
         }
@@ -38,52 +36,43 @@ namespace wifiptp
         {
 
             Log.Info("Client", "Starting client service");
-            Stream inputStream = null, outputStream = null;
-            FileStream fileStream = null;
-            FileStream imageFileStream = null;
 
             // connect to server
             Log.Info("Client", "Connecting to server");
-            Socket socket = new Socket();
-            socket.Bind(null);
-            InetSocketAddress sa = new InetSocketAddress(ip, port);
             try
             {
-                socket.Connect(sa, 2000);
-
-                inputStream = socket.InputStream;
-				outputStream = socket.OutputStream;
+                clientSocket.Connect(remoteEP);
 
                 // 1. clients sends file first
 
                 // prepare image to send
                 int count = 0;
                 byte[] sizeData;
-                foreach (Java.IO.File file in files) {
-                    if (file.Exists()) {
+                foreach (string file in files) {
+                    if (File.Exists(file)) {
 
+                        FileStream filestream = new FileStream(file, FileMode.Open);
                         Log.Info(id, "Sending file " + count + 1);
 
                         // 1.1 send file name size as long integer
                         Log.Debug(id, "Sending file name size to server");
-                        byte[] name = Encoding.ASCII.GetBytes(file.Name);
+                        byte[] name = Encoding.ASCII.GetBytes(Path.GetFileName(filestream.Name));
                         sizeData = BitConverter.GetBytes(name.LongLength);
-                        outputStream.Write(sizeData, 0, sizeof(long));
+                        clientSocket.Send(sizeData, sizeof(long), SocketFlags.None);
 
                         // 1.2 send file name
                         Log.Debug(id, "Sending file name to server");
-                        outputStream.Write(name, 0, name.Length);
+                        clientSocket.Send(name, name.Length, SocketFlags.None);
 
                         // 1.3 send size of file as a 64-bit (8 bytes) long integer
                         Log.Info(id, "Sending file size to server");
-                        fileStream = new FileStream(file.AbsolutePath, FileMode.Open, FileAccess.Read);
-                        sizeData = BitConverter.GetBytes(fileStream.Length);
-                        outputStream.Write(sizeData, 0, sizeof(long));
+                        sizeData = BitConverter.GetBytes(filestream.Length);
+                        clientSocket.Send(sizeData, sizeof(long), SocketFlags.None);
 
                         // 1.4 send file
                         Log.Info(id, "Sending file to server");
-                        buf = new byte[fileStream.Length];
-                        int bytesToRead = (int)fileStream.Length;
+                        buf = new byte[filestream.Length];
+                        int bytesToRead = (int)filestream.Length;
                         int bytesRead = 0;
 
                         do
@@ -91,11 +80,10 @@ namespace wifiptp
                             int r = 1024;
                             if (bytesToRead < 1024)
                                 r = bytesToRead;
-                            int len = fileStream.Read(buf, 0, r);
+                            int len = filestream.Read(buf, 0, r);
 
                             // send
-                            outputStream.Write(buf, 0, len);
-                            outputStream.Flush();
+                            clientSocket.Send(buf, len, SocketFlags.None);
 
                             bytesRead += len;
                             bytesToRead -= len;
@@ -104,18 +92,19 @@ namespace wifiptp
                         Log.Info(id, bytesRead + " bytes sent");
 
                         count++;
+                        filestream.Close();
 
                         // wait for client's response
                         Log.Info(id, "Waiting to hear from server");
-                        while (!inputStream.IsDataAvailable()) { }
-                        inputStream.Read(buf, 0, sizeof(long));
+                        while (clientSocket.Available == 0) { }
+                        clientSocket.Receive(buf, sizeof(long), SocketFlags.None);
                     }
                 }
 
                 // send 0 as a 64-bit long integer to indicate end
                 Log.Info(id, "Finished. Send end signal");
                 sizeData = BitConverter.GetBytes((long)0);
-                outputStream.Write(sizeData, 0, sizeof(long));
+                clientSocket.Send(sizeData, sizeof(long), SocketFlags.None);
 
                 return "Success";
 
@@ -126,20 +115,14 @@ namespace wifiptp
 
             } finally {
 				Log.Info(id, "Finished, closing");
-                if (outputStream != null) 
-                    outputStream.Close();
-                if (inputStream != null)
-                    inputStream.Close();
-                if (fileStream != null)
-                    fileStream.Close();
-                if (imageFileStream != null)
-                    imageFileStream.Close();
 
-				if (socket != null)
+
+				if (clientSocket != null)
 				{
-					if (socket.IsConnected)
+                    if (clientSocket.Connected)
 					{
-						socket.Close();
+                        clientSocket.Shutdown(SocketShutdown.Both);
+                        clientSocket.Close();
 					}
 				}
             }

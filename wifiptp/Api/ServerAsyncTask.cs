@@ -45,15 +45,17 @@ namespace wifiptp.Api
         {
 
             Log.Debug(id, "Server Task started");
+            serverSocket.Listen(1);
 
             while (true) // restarting socket after each connection
             {
 
                 try
                 {
+
+                    Log.Debug(id, "Listening for connection");
                     // wait for client connection
                     isListening = true;
-                    serverSocket.Listen(1);
                     Socket client = serverSocket.Accept();
                     isListening = false;
 
@@ -91,9 +93,8 @@ namespace wifiptp.Api
                             Log.Info(id, "Receiving file from client");
                             outFileStream = File.Create(fileDirectory + "/" + filename);
                             Utils.CopyStream(client, outFileStream, size);
-                            outFileStream.Flush();
-
                             Log.Info(id, "Received file length: " + outFileStream.Length);
+                            outFileStream.Close();
                         }
 
                         // send 0 to signal received
@@ -110,7 +111,8 @@ namespace wifiptp.Api
 
                     } // while more files to receive
 
-                    serverSocket.Disconnect(true);
+                    client.Shutdown(SocketShutdown.Both);
+                    client.Close();
 
                     // catch interruption if any or go back to listening
                     if (IsCancelled)
