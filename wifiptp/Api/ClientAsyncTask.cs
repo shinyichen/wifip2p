@@ -42,6 +42,7 @@ namespace wifiptp
             try
             {
                 clientSocket.Connect(remoteEP);
+                taskListener.OnConnected(false);
 
                 // 1. clients sends file first
 
@@ -131,7 +132,7 @@ namespace wifiptp
 
         protected override void OnPostExecute(Java.Lang.Object result)
         {
-            taskListener.OnTaskCompleted();
+            taskListener.OnDisconnected(false);
         }
     }
 }

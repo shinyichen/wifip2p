@@ -18,9 +18,8 @@ namespace wifiptp.Api
         void DeviceFound(NsdServiceInfo device);
         void DeviceLost(NsdServiceInfo device);
 
-        void ConnectionReceived(); // TODO
-        void ConnectionClosed(); // TODO
-        void FilesSent(); // include parameter
+        void Connected(bool server);
+        void Disconnected(bool server);
         void FilesReceived();
     }
 }

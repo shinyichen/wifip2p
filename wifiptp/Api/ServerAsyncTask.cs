@@ -57,6 +57,7 @@ namespace wifiptp.Api
                     // wait for client connection
                     isListening = true;
                     Socket client = serverSocket.Accept();
+                    taskListener.OnConnected(true);
                     isListening = false;
 
                     Log.Info(id, "Received incoming connection ");
@@ -72,6 +73,7 @@ namespace wifiptp.Api
                         if (size == 0)
                         {// done
                             Log.Debug(id, "Got end signal from client. Ending");
+                            taskListener.OnDisconnected(true);
                             break;
                         }
 
@@ -123,7 +125,8 @@ namespace wifiptp.Api
 
                 } catch (SocketException) {
                     // Socket closed (interrupt)
-                    return "interrupted";
+                    if (IsCancelled)
+                        return "interrupted";
                 }
             } // while
 

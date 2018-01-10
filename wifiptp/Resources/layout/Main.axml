@@ -19,6 +19,40 @@
         android:text="Search"
         android:paddingTop="5dp"
         style="@android:style/TextAppearance.Medium" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="5dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Server Status: "
+            style="@android:style/TextAppearance.Medium" />
+        <TextView
+            android:id="@+id/serverStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disconnected"
+            style="@android:style/TextAppearance.Medium" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="5dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Client Status: "
+            style="@android:style/TextAppearance.Medium" />
+        <TextView
+            android:id="@+id/clientStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disconnected"
+            style="@android:style/TextAppearance.Medium" />
+    </LinearLayout>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

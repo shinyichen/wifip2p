@@ -3,12 +3,9 @@ using Android.Widget;
 using Android.OS;
 using System.Collections.Generic;
 using Android.Util;
-using Java.Net;
-using System;
 using wifiptp.Api;
 using Android.Net.Nsd;
 using Java.IO;
-using Android.Support.V4.Content;
 using System.Net;
 
 namespace wifiptp
@@ -26,6 +23,10 @@ namespace wifiptp
         private Switch discoverableSwitch;
 
         private Switch searchSwitch;
+
+        private TextView serverStatusTextView;
+
+        private TextView clientStatusTextView;
 
         private List<string> foundServices = new List<string>();
 
@@ -75,6 +76,12 @@ namespace wifiptp
                     wifiptp.stopDiscoverServices();
                 }
             };
+
+            serverStatusTextView = (TextView)FindViewById(Resource.Id.serverStatus);
+            serverStatusTextView.Text = "Disconnected";
+
+            clientStatusTextView = (TextView)FindViewById(Resource.Id.clientStatus);
+            clientStatusTextView.Text = "Disconnected";
 
             // single selection only
             deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
@@ -292,20 +299,30 @@ namespace wifiptp
             });
         }
 
-        public void ConnectionReceived()
+        public void Connected(bool server)
         {
-           // TODO stop discovery, disable buttons and list
+            RunOnUiThread(() =>
+            {
+                // stop discovery, disable buttons and list
+                sendButton.Enabled = false;
+                if (server)
+                    serverStatusTextView.Text = "Connected";
+                else
+                    clientStatusTextView.Text = "Connected";
+            });
         }
 
-        public void ConnectionClosed()
+        public void Disconnected(bool server)
         {
-            // TODO restart discovery, enable buttons and list
-        }
-
-        // could be success or failure
-        public void FilesSent()
-        {
-            sendButton.Enabled = true;
+            RunOnUiThread(() =>
+            {
+                // restart discovery, enable buttons and list
+                sendButton.Enabled = true;
+                if (server)
+                    serverStatusTextView.Text = "Disconnected";
+                else
+                    clientStatusTextView.Text = "Disconnected";
+            });
         }
 
         public void FilesReceived() {
@@ -317,7 +334,6 @@ namespace wifiptp
                 fileListAdapter.Add(new MyFile(file));
             }
         }
-
 
     }
 

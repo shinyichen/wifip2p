@@ -3,7 +3,8 @@ namespace wifiptp
 {
     public interface ITaskProgress
     {
+        void OnConnected(bool server);
         void OnFilesReceived();
-        void OnTaskCompleted();
+        void OnDisconnected(bool server);
     }
 }

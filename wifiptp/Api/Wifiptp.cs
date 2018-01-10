@@ -349,15 +349,17 @@ namespace wifiptp
             }
         }
 
+        public void OnConnected(bool server) {
+            statusListener.Connected(server);
+        }
+
         public void OnFilesReceived() {
             statusListener.FilesReceived();
         }
 
-        // client asyn completed
-        public void OnTaskCompleted()
+        public void OnDisconnected(bool server)
         {
-            // notify
-            statusListener.FilesSent();
+            statusListener.Disconnected(server);
         }
     }
 
