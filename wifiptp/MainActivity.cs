@@ -101,7 +101,7 @@ namespace wifiptp
             fileListView = FindViewById<ListView>(Resource.Id.fileListView);
             fileListView.ChoiceMode = ChoiceMode.Multiple;
             fileListView.Adapter = fileListAdapter;
-            fileListView.Enabled = false;
+            //fileListView.Enabled = false;
 
             // app file list 
             File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
@@ -199,13 +199,13 @@ namespace wifiptp
 
         private void EnableLists() {
             deviceListView.Enabled = true;
-            fileListView.Enabled = true;
+            //fileListView.Enabled = true;
         }
 
         private void DisableLists()
         {
             deviceListView.Enabled = false;
-            fileListView.Enabled = false;
+            //fileListView.Enabled = false;
         }
 
         // updates from Wifiptp
@@ -341,6 +341,10 @@ namespace wifiptp
                     serverStatusTextView.Text = "Disconnected";
                 else
                     clientStatusTextView.Text = "Disconnected";
+
+                // clear all selections
+                fileListView.ClearChoices();
+                deviceListView.ClearChoices();
             });
         }
 
