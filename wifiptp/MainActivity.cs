@@ -7,11 +7,13 @@ using wifiptp.Api;
 using Android.Net.Nsd;
 using Java.IO;
 using System.Net;
+using Android.Support.V7.App;
+using Android.Support.Design.Widget;
 
 namespace wifiptp
 {
     [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, StatusChangedListener
+    public class MainActivity : AppCompatActivity, StatusChangedListener
 	{
 
         private const string id = "Backpack-Main";
@@ -115,26 +117,43 @@ namespace wifiptp
                 int pos;
                 SparseBooleanArray selected = fileListView.CheckedItemPositions;
                 List<string> selectedFiles = new List<string>();
-                for (int i = 0; i < selected.Size(); i++) {
+                for (int i = 0; i < selected.Size(); i++)
+                {
                     pos = selected.KeyAt(i);
-                    if (selected.ValueAt(i)) { // selected
+                    if (selected.ValueAt(i))
+                    { // selected
                         selectedFiles.Add(((MyFile)fileListAdapter.GetItem(pos)).File.AbsolutePath);
                     }
                 }
 
-                // get selected device
-                pos = deviceListView.CheckedItemPosition;
-                MyServiceInfo selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(pos);
-
-                // send
-                if (selectedDevice != null && selectedFiles.Count > 0) { 
-                    sendButton.Enabled = false;
-                    IPAddress ipAddress = new IPAddress(selectedDevice.Host.GetAddress());
-                    IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, selectedDevice.Port);
-                    wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
-                    // TODO clear selections
+                if (selectedFiles.Count == 0)
+                {
+                    Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Must select files.", Snackbar.LengthShort).Show();
                 }
+                else
+                {
+                    // get selected device
+                    pos = deviceListView.CheckedItemPosition;
+                    if (pos == -1)
+                    {
+                        Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Must select a device.", Snackbar.LengthShort).Show();
 
+                    }
+                    else
+                    {
+                        MyServiceInfo selectedDevice = (MyServiceInfo)deviceListadapter.GetItem(pos);
+
+                        // send
+                        if (selectedDevice != null && selectedFiles.Count > 0)
+                        {
+                            sendButton.Enabled = false;
+                            IPAddress ipAddress = new IPAddress(selectedDevice.Host.GetAddress());
+                            IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, selectedDevice.Port);
+                            wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
+                            // TODO clear selections
+                        }
+                    }
+                }
             };
 
             // TODO enable sendButton if files and device selected

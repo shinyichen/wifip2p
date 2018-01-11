@@ -16,5 +16,5 @@
 			<action android:name="android.intent.action.BOOT_COMPLETED" />
 		</intent-filter>
 	</receiver>
-	<application android:allowBackup="true" android:icon="@mipmap/icon" android:label="@string/app_name" android:theme="@android:style/Theme.Material.Light.DarkActionBar"></application>
+	<application android:allowBackup="true" android:icon="@mipmap/icon" android:label="@string/app_name" android:theme="@style/MyTheme"></application>
 </manifest>

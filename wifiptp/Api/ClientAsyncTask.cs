@@ -114,6 +114,9 @@ namespace wifiptp
                 Log.Info(id, "Exception caught: " + e.Message);
                 return "failed";
 
+            } catch (SocketException se) {
+                Log.Info(id, "Exception caught: " + se.Message);
+                return "failed";
             } finally {
 				Log.Info(id, "Finished, closing");
 

@@ -1,87 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/myCoordinatorLayout"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="5dp">
-    <Switch
-        android:id="@+id/discoverableSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:checked="false"
-        android:text="Discoverable"
-        style="@android:style/TextAppearance.Medium" />
-    <Switch
-        android:id="@+id/searchSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:checked="false"
-        android:text="Search"
-        android:paddingTop="5dp"
-        style="@android:style/TextAppearance.Medium" />
+    android:layout_height="match_parent">
     <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="5dp">
-        <TextView
+        android:padding="5dp">
+        <Switch
+            android:id="@+id/discoverableSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Server Status: "
+            android:checked="false"
+            android:text="Discoverable"
             style="@android:style/TextAppearance.Medium" />
-        <TextView
-            android:id="@+id/serverStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Disconnected"
-            style="@android:style/TextAppearance.Medium" />
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="5dp">
-        <TextView
+        <Switch
+            android:id="@+id/searchSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Client Status: "
+            android:checked="false"
+            android:text="Search"
+            android:paddingTop="5dp"
             style="@android:style/TextAppearance.Medium" />
-        <TextView
-            android:id="@+id/clientStatus"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Disconnected"
+            android:orientation="horizontal"
+            android:paddingTop="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Server Status: "
+                style="@android:style/TextAppearance.Medium" />
+            <TextView
+                android:id="@+id/serverStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Disconnected"
+                style="@android:style/TextAppearance.Medium" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="5dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Client Status: "
+                style="@android:style/TextAppearance.Medium" />
+            <TextView
+                android:id="@+id/clientStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Disconnected"
+                style="@android:style/TextAppearance.Medium" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Devices"
+            android:paddingTop="5dp"
             style="@android:style/TextAppearance.Medium" />
+        <ListView
+            android:id="@+id/deviceListView"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:paddingTop="5dp"
+            android:scrollbars="vertical"
+            android:choiceMode="singleChoice" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Files"
+            android:paddingTop="5dp"
+            style="@android:style/TextAppearance.Medium" />
+        <ListView
+            android:id="@+id/fileListView"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:paddingTop="5dp"
+            android:scrollbars="vertical"
+            android:choiceMode="multipleChoice" />
+        <Button
+            android:id="@+id/sendButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send" />
     </LinearLayout>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Devices"
-        android:paddingTop="5dp"
-        style="@android:style/TextAppearance.Medium" />
-    <ListView
-        android:id="@+id/deviceListView"
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:paddingTop="5dp"
-        android:scrollbars="vertical"
-        android:choiceMode="singleChoice" />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Files"
-        android:paddingTop="5dp"
-        style="@android:style/TextAppearance.Medium" />
-    <ListView
-        android:id="@+id/fileListView"
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:paddingTop="5dp"
-        android:scrollbars="vertical"
-        android:choiceMode="multipleChoice" />
-    <Button
-        android:id="@+id/sendButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Send" />
-</LinearLayout>
+</android.support.design.widget.CoordinatorLayout>
