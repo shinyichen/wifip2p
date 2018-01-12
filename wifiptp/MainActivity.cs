@@ -322,6 +322,8 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
+                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Connected, transfering", Snackbar.LengthLong).Show();
+
                 // stop discovery, disable buttons and list
                 sendButton.Enabled = false;
                 if (server)
@@ -335,6 +337,8 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
+                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
+
                 // restart discovery, enable buttons and list
                 sendButton.Enabled = true;
                 if (server)
@@ -343,7 +347,9 @@ namespace wifiptp
                     clientStatusTextView.Text = "Disconnected";
 
                 // clear all selections
+                fileListView.SetItemChecked(0, true);
                 fileListView.ClearChoices();
+                deviceListView.SetItemChecked(0, true);
                 deviceListView.ClearChoices();
             });
         }
