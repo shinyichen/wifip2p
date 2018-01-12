@@ -7,7 +7,6 @@ using Android.Util;
 using System.Collections.Generic;
 using Android.Bluetooth;
 using Android.OS;
-using Java.IO;
 using System.Net.Sockets;
 using System.Net;
 
@@ -272,12 +271,6 @@ namespace wifiptp
                 {
                     nsdStatus = NsdStatus.Unregistering;
                     nsdManager.UnregisterService(nsdRegistrationListener);
-                    Log.Debug(ID, "Closing socket");
-                    //if (serverSocket.Connected)
-                        //serverSocket.Shutdown(SocketShutdown.Both);
-                    // server socket should be listening right now (TODO: disable switch when sending/receiving)
-                    //serverSocket.Close();
-                    // server socket will be closed when service unregistered 
                 }
             }
                 

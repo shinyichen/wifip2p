@@ -150,15 +150,10 @@ namespace wifiptp
                             IPAddress ipAddress = new IPAddress(selectedDevice.Host.GetAddress());
                             IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, selectedDevice.Port);
                             wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
-                            // TODO clear selections
                         }
                     }
                 }
             };
-
-            // TODO enable sendButton if files and device selected
-            // TODO clear device list when search is turned off
-
 
             wifiptp = new Wifiptp(serviceName, this, this);
          
@@ -240,7 +235,8 @@ namespace wifiptp
 
                 if (error.Equals(Wifiptp.Error.NoWifi))
                 {
-                    // TODO let user know
+                    // let user know
+                    Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Network Service Registration Failed", Snackbar.LengthLong).Show();
                 }
             });
         }
@@ -253,6 +249,7 @@ namespace wifiptp
                 EnableAllSwitches();
 
                 // let user know about error
+                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Network Service Unregistration Failed", Snackbar.LengthLong).Show();
             });
         }
 
@@ -262,7 +259,8 @@ namespace wifiptp
             searchSwitch.Checked = false;
             EnableAllSwitches();
             if (error.Equals(Wifiptp.Error.NoWifi)) {
-                // TODO let user know
+                // let user know
+                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Error, no WIFI", Snackbar.LengthLong).Show();
             }
         }
 
