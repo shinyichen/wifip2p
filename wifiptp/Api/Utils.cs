@@ -20,20 +20,30 @@ namespace wifiptp
 			int bytesRead = 0;
 
 
-			// TODO could be in infinite loop, use time out
-			while (size > 0)
-			{
-				if (source.IsDataAvailable() && ((bytesRead = source.Read(buf, 0, bufSize)) > 0))
-				{
-					target.Write(buf, 0, bytesRead);
-					totalBytes += bytesRead;
-					size -= bytesRead;
-					if (size < bufSize)
-						bufSize = (int)size;
-					//Log.Info("CopyStream", "loop: " + totalBytes);
-				}
+            // TODO could be in infinite loop, use time out
+            source.ReadTimeout = 5000;
+            try {
 
-			}
+                while (size > 0)
+                {
+                    if ((bytesRead = source.Read(buf, 0, bufSize)) > 0)
+                    {
+                        target.Write(buf, 0, bytesRead);
+                        totalBytes += bytesRead;
+                        size -= bytesRead;
+                        if (size < bufSize)
+                            bufSize = (int)size;
+                        //Log.Info("CopyStream", "loop: " + totalBytes);
+                    }
+
+                }
+
+            } catch (IOException e) {
+                // read timed out
+                Log.Debug("CopyStream", "Read timed out");
+                throw e;
+            }
+			
 			return totalBytes;
 		}
 

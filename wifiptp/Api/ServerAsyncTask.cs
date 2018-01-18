@@ -46,6 +46,7 @@ namespace wifiptp.Api
 
             Log.Debug(id, "Server Task started");
             serverSocket.Listen(1);
+            Socket client = null;
 
             while (true) // restarting socket after each connection
             {
@@ -56,7 +57,7 @@ namespace wifiptp.Api
                     Log.Debug(id, "Listening for connection");
                     // wait for client connection
                     isListening = true;
-                    Socket client = serverSocket.Accept();
+                    client = serverSocket.Accept();
                     taskListener.OnConnected(true);
                     isListening = false;
 
@@ -107,28 +108,36 @@ namespace wifiptp.Api
                         PublishProgress();
 
                         // wait for clinet response 
+                        // TODO use time out?
                         Log.Info(id, "Wait for client to send next");
                         while(client.Available == 0) {}
 
 
                     } // while more files to receive
 
-                    client.Shutdown(SocketShutdown.Both);
-                    client.Close();
-
-                    // catch interruption if any or go back to listening
-                    if (IsCancelled)
-                    {
-                        return "interrupted";
-                    }
+                 
 
 
                 } catch (SocketException) {
                     // Socket closed (interrupt)
                     if (IsCancelled)
-                        return "interrupted";
+                        break;
+                } catch (IOException) {
+                    // Util.CopyStream read timed out
+                    Log.Debug(id, "Read timed out, exit server task");
+                } catch (ObjectDisposedException) {
+                    
                 }
+
+                // catch interruption if any or go back to listening
+                if (IsCancelled)
+                {
+                    break;
+                }
+
             } // while
+
+            return "Complete";
 
         }
 
