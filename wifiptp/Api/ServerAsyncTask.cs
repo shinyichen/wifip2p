@@ -5,6 +5,7 @@ using Android.OS;
 using Android.Util;
 using System.Net.Sockets;
 using System.Net;
+using System.Threading;
 
 namespace wifiptp.Api
 {
@@ -107,12 +108,19 @@ namespace wifiptp.Api
                         // files received
                         PublishProgress();
 
-                        // wait for clinet response 
-                        // TODO use time out?
+                        // wait for clinet response or timed out
                         Log.Info(id, "Wait for client to send next");
-                        while(client.Available == 0) {}
+                        int elapsed = 0;
+                        while(client.Available == 0 && elapsed < 7000) {
+                            Thread.Sleep(1000);
+                            elapsed += 1000;
+                        }
 
-
+                        // if timed out
+                        if (elapsed >= 7000) {
+                            Log.Debug(id, "Wait timed out, give up.");
+                            break;
+                        }
                     } // while more files to receive
 
                  
@@ -125,8 +133,6 @@ namespace wifiptp.Api
                 } catch (IOException) {
                     // Util.CopyStream read timed out
                     Log.Debug(id, "Read timed out, exit server task");
-                } catch (ObjectDisposedException) {
-                    
                 }
 
                 // catch interruption if any or go back to listening

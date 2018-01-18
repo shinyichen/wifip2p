@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using Android.OS;
 using Android.Util;
 
@@ -97,8 +98,22 @@ namespace wifiptp
 
                         // wait for client's response
                         Log.Info(id, "Waiting to hear from server");
-                        while (clientSocket.Available == 0) { }
-                        clientSocket.Receive(buf, sizeof(long), SocketFlags.None);
+
+                        // wait till data available or timed out
+                        int elapsed = 0;
+                        while (clientSocket.Available == 0 && elapsed < 7000) {
+                            Thread.Sleep(1000);
+                            elapsed += 1000;
+                        }
+
+                        // if timed out
+                        if (elapsed >= 7000) {
+                            Log.Info(id, "Wait timed out. Give up.");
+                            break;
+                        } else { // receive
+                            clientSocket.Receive(buf, sizeof(long), SocketFlags.None);
+                        }
+
                     }
                 }
 
