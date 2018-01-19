@@ -20,7 +20,7 @@ namespace wifiptp
 			int bytesRead = 0;
 
 
-            // TODO could be in infinite loop, use time out
+            // use time out
             source.ReadTimeout = 5000;
             try {
 

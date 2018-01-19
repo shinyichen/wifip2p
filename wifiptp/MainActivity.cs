@@ -323,6 +323,7 @@ namespace wifiptp
                 Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Connected, transfering", Snackbar.LengthLong).Show();
 
                 // stop discovery, disable buttons and list
+                DisableAllSwitches();
                 sendButton.Enabled = false;
                 if (server)
                     serverStatusTextView.Text = "Connected";
@@ -338,6 +339,7 @@ namespace wifiptp
                 Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
 
                 // restart discovery, enable buttons and list
+                EnableAllSwitches();
                 sendButton.Enabled = true;
                 if (server)
                     serverStatusTextView.Text = "Disconnected";
