@@ -202,14 +202,43 @@ namespace wifiptp
                 // connected
                 if (networkId != -1)
                 {
-                    // TODO 
                     wifiStatus = WifiStatus.Connected;
 
                 }
                 else
                 {
-                    // TODO handle during a transfer, while registered, or while searching
+                    //  Wifi stopped during a transfer, while registered, or while searching
                     wifiStatus = WifiStatus.Disconnected;
+
+                    // discovery stopped
+                    if (searchStatus == SearchStatus.Searching)
+                    {
+                        searchStatus = SearchStatus.Stopped;
+                        devices.Clear();
+                        serviceNames.Clear();
+                        statusListener.DiscoveryStopped();
+                    }
+
+                    // service unregistered
+                    if (nsdStatus == NsdStatus.Registered)
+                    {
+                        myServiceInfo = null;
+                        nsdStatus = NsdStatus.Unregistered;
+                        statusListener.NsdUnregistered();
+                    }
+
+                    // assuming socket disconnects when WIFI is disconnected
+                    if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished))
+                    {
+                        // must keep these two line in this sequence
+                        // if socket is just listening, close the socket and handle onCanceled
+                        // else if files are being transfered, wait until task reaches the end to handle onCanceled
+                        serverTask.Cancel(true); // mark interruption
+                        serverSocket.Close(); // socket may already be closed?
+                    }
+
+                    // client task should automatically end when socket exception is caught
+
 
                 }
             }, () =>
