@@ -9,10 +9,11 @@ using Java.IO;
 using System.Net;
 using Android.Support.V7.App;
 using Android.Support.Design.Widget;
+using Android.Content.PM;
 
 namespace wifiptp
 {
-    [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon")]
+    [Activity(Label = "wifiptp", MainLauncher = true, Icon = "@mipmap/icon", ScreenOrientation = ScreenOrientation.Portrait)]
     public class MainActivity : AppCompatActivity, StatusChangedListener
 	{
 
