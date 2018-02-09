@@ -129,7 +129,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <AndroidResource Include="Resources\layout\Main.axml" />
+    <AndroidResource Include="Resources\layout\FilesView.axml" />
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\mipmap-hdpi\Icon.png" />
     <AndroidResource Include="Resources\mipmap-mdpi\Icon.png" />
@@ -140,10 +140,19 @@
     <AndroidResource Include="Resources\drawable\ListBackground.xml" />
     <AndroidResource Include="Resources\values\Colors.xml" />
     <AndroidResource Include="Resources\values\styles.xml" />
+    <AndroidResource Include="Resources\layout\SearchView.xml" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_visibility_off_white_24dp.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_visibility_off_white_24dp.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_visibility_off_white_24dp.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_visibility_off_white_24dp.png" />
+    <AndroidResource Include="Resources\drawable-xxxhdpi\ic_visibility_off_white_24dp.png" />
+    <AndroidResource Include="Resources\menu\ActionMenu.xml" />
+    <AndroidResource Include="Resources\drawable\ic_visibility_off_white_24dp.png" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable\" />
     <Folder Include="Api\" />
+    <Folder Include="Resources\menu\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Android.Support.Annotations.26.1.0.1\build\MonoAndroid80\Xamarin.Android.Support.Annotations.targets" Condition="Exists('..\packages\Xamarin.Android.Support.Annotations.26.1.0.1\build\MonoAndroid80\Xamarin.Android.Support.Annotations.targets')" />
