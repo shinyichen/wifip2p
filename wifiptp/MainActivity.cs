@@ -12,6 +12,8 @@ using Android.Support.Design.Widget;
 using Android.Content.PM;
 using Android.Support.V4.Widget;
 using System;
+using Android.Content;
+using Android.Views;
 
 namespace wifiptp
 {
@@ -23,33 +25,55 @@ namespace wifiptp
 
         private const string serviceName = "backpack";
 
-        //private Wifiptp wifiptp;
+        private Wifiptp wifiptp;
 
-        private Switch discoverableSwitch;
+        private bool isVisible = false;
 
-        private Switch searchSwitch;
+        public bool Visible {
+            get {
+                return isVisible;
+            }
+        }
 
-        private TextView serverStatusTextView;
+        //private Switch discoverableSwitch;
 
-        private TextView clientStatusTextView;
+        //private Switch searchSwitch;
+
+        //private TextView serverStatusTextView;
+
+        //private TextView clientStatusTextView;
 
         private List<string> foundServices = new List<string>();
 
-        private ListView deviceListView;
+        private ArrayAdapter fileListAdapter;
+
+        public ArrayAdapter FileListAdapter {
+            get {
+                return fileListAdapter;
+            }
+        }
 
         private ArrayAdapter deviceListadapter;
 
-        private ListView fileListView;
+        public ArrayAdapter DeviceListAdapter {
+            get {
+                return deviceListadapter;
+            }
+        }
 
-        private ArrayAdapter fileListAdapter;
+        private IMenu optionsMenu;
+
+        private List<string> selectedFiles;
+
+        public List<string> SelectedFiles {
+            get {
+                return selectedFiles;
+            }
+        }
 
         private string myServiceName;
 
-        private SwipeRefreshLayout refreshLayout;
 
-        private Button deleteButton;
-
-        private Button shareButton;
 
 
         protected override void OnCreate(Bundle savedInstanceState)
@@ -57,29 +81,36 @@ namespace wifiptp
             base.OnCreate(savedInstanceState);
 
             // layout
-            SetContentView(Resource.Layout.FilesView);
+            SetContentView(Resource.Layout.MainActivityLayout);
 
             Android.Support.V7.Widget.Toolbar toolbar = (Android.Support.V7.Widget.Toolbar)FindViewById(Resource.Id.filesActionBar);
             SetSupportActionBar(toolbar);
 
-            refreshLayout = (SwipeRefreshLayout)FindViewById(Resource.Id.refreshLayout);
-            OnRefreshListener refreshListener = new OnRefreshListener(() =>
+            // initialize file list adapter
+            fileListAdapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemMultipleChoice);
+            fileListAdapter.SetNotifyOnChange(true);
+            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
+            foreach (File file in files)
             {
-                refreshFileList();
-                refreshLayout.Refreshing = false;
-            });
-            refreshLayout.SetOnRefreshListener(refreshListener);
+                fileListAdapter.Add(new MyFile(file));
+            }
 
-   //         discoverableSwitch = (Switch)FindViewById(Resource.Id.discoverableSwitch);
-   //         discoverableSwitch.CheckedChange += (sender, e) => {
-   //             if (e.IsChecked) {
-   //                 DisableAllSwitches();
-   //                 wifiptp.setDiscoverable(true);
-   //             } else {
-   //                 DisableAllSwitches();
-   //                 wifiptp.setDiscoverable(false);
-   //             }
-   //         };
+            // init device list adapter
+            deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
+            deviceListadapter.SetNotifyOnChange(true);
+
+            // init 
+
+            //         discoverableSwitch = (Switch)FindViewById(Resource.Id.discoverableSwitch);
+            //         discoverableSwitch.CheckedChange += (sender, e) => {
+            //             if (e.IsChecked) {
+            //                 DisableAllSwitches();
+            //                 wifiptp.setDiscoverable(true);
+            //             } else {
+            //                 DisableAllSwitches();
+            //                 wifiptp.setDiscoverable(false);
+            //             }
+            //         };
 
             //         searchSwitch = (Switch)FindViewById(Resource.Id.searchSwitch);
             //         searchSwitch.Enabled = false;
@@ -96,92 +127,20 @@ namespace wifiptp
             //             }
             //         };
 
-            //         serverStatusTextView = (TextView)FindViewById(Resource.Id.serverStatus);
-            //         serverStatusTextView.Text = "Disconnected";
-
-            //         clientStatusTextView = (TextView)FindViewById(Resource.Id.clientStatus);
-            //         clientStatusTextView.Text = "Disconnected";
-
-            //         // single selection only
-            //         deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
-            //         deviceListadapter.SetNotifyOnChange(true);
-
-            //deviceListView = FindViewById<ListView>(Resource.Id.deviceListView);
-            //deviceListView.ChoiceMode = ChoiceMode.Single;
-            //deviceListView.Adapter = deviceListadapter;
-            //deviceListView.Enabled = false;
-
-            // file list view
-            fileListAdapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemMultipleChoice);
-            fileListAdapter.SetNotifyOnChange(true);
-
-            fileListView = FindViewById<ListView>(Resource.Id.fileListView);
-            fileListView.ChoiceMode = ChoiceMode.Multiple;
-            fileListView.Adapter = fileListAdapter;
-            //fileListView.Enabled = false;
-
-            // app file list 
-            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
-            foreach (File file in files)
-            {
-                fileListAdapter.Add(new MyFile(file));
-            }
-
-            deleteButton = (Button)FindViewById(Resource.Id.deleteButton);
-            deleteButton.Click += (sender, e) =>
-            {
-                SparseBooleanArray selected = fileListView.CheckedItemPositions;
-                List<string> selectedFiles = new List<string>();
-
-                if (selected.Size() == 0)
-                {
-                    Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Must select files.", Snackbar.LengthShort).Show();
-                }
-                else
-                {
-                    // delete files
-                    int pos;
-                    for (int i = 0; i < selected.Size(); i++)
-                    {
-                        pos = selected.KeyAt(i);
-                        if (selected.ValueAt(i))
-                        { // selected
-                            ((MyFile)fileListAdapter.GetItem(pos)).File.Delete();
-                        }
-                    }
-                    clearFileListSelection();
-                    refreshFileList();
-                }
-            };
-
-            shareButton = FindViewById<Button>(Resource.Id.shareButton);
-            shareButton.Click += (sender, e) =>
-            {
-                int pos;
-                SparseBooleanArray selected = fileListView.CheckedItemPositions;
-                List<string> selectedFiles = new List<string>();
-                for (int i = 0; i < selected.Size(); i++)
-                {
-                    pos = selected.KeyAt(i);
-                    if (selected.ValueAt(i))
-                    { // selected
-                        selectedFiles.Add(((MyFile)fileListAdapter.GetItem(pos)).File.AbsolutePath);
-                    }
-                }
-
-                if (selectedFiles.Count == 0)
-                {
-                    Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Must select files.", Snackbar.LengthShort).Show();
-                }
-                else
-                {
-                    // TODO next activity
-                }
-            };
 
 
-            //wifiptp = new Wifiptp(serviceName, this, this);
 
+
+
+
+
+
+            wifiptp = new Wifiptp(serviceName, this, this);
+
+            Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+            t.Replace(Resource.Id.fragmentHolder, new FilesViewFragment());
+            t.Commit();
+                                                          
         }
 
         protected override void OnResume()
@@ -192,9 +151,11 @@ namespace wifiptp
 
         public override bool OnCreateOptionsMenu(Android.Views.IMenu menu)
         {
+            optionsMenu = menu;
             MenuInflater.Inflate(Resource.Menu.ActionMenu, menu);
             return base.OnCreateOptionsMenu(menu);
         }
+
 
         public override bool OnOptionsItemSelected(Android.Views.IMenuItem item)
         {
@@ -202,16 +163,21 @@ namespace wifiptp
             switch (item.ItemId)
             {
                 case Resource.Id.action_visible:
-                    // TODO
+                    // TODO tell fragement to disable buttons
+                    if (isVisible) 
+                        wifiptp.setDiscoverable(false);
+                    else
+                        wifiptp.setDiscoverable(true);
                     return true;
             }
 
             return base.OnOptionsItemSelected(item);
         }
+
         protected override void OnPause()
         {
 
-            //wifiptp.setDiscoverable(false); // this includes stop searching
+            wifiptp.setDiscoverable(false); // this includes stop searching
             base.OnPause();
         }
 
@@ -226,39 +192,77 @@ namespace wifiptp
             base.OnDestroy();
         }
 
-        private void EnableAllSwitches()
-        {
-            discoverableSwitch.Enabled = true;
-            searchSwitch.Enabled = true;
+        /**************** private methods *************/
+
+        private void clearBackstack() {
+            for (int i = 0; i < SupportFragmentManager.BackStackEntryCount; i++) {
+                SupportFragmentManager.PopBackStack();
+            }
         }
 
-        private void DisableAllSwitches()
+      
+        /**************** public methods **************/
+
+
+        public void RefreshFileList()
         {
-            discoverableSwitch.Enabled = false;
-            searchSwitch.Enabled = false;
+            fileListAdapter.Clear();
+            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
+            foreach (File file in files)
+            {
+                fileListAdapter.Add(new MyFile(file));
+            }
         }
 
-        private void EnableLists()
-        {
-            deviceListView.Enabled = true;
-            //fileListView.Enabled = true;
+        // called by FilesViewFragment when use click share
+        public void Share(List<string> files) {
+            selectedFiles = files;
+            Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+            SearchFragment f = new SearchFragment();
+            t.Replace(Resource.Id.fragmentHolder, f);
+            t.AddToBackStack(null);
+            t.Commit();
         }
 
-        private void DisableLists()
-        {
-            deviceListView.Enabled = false;
-            //fileListView.Enabled = false;
+        public void StartDiscovery() {
+            wifiptp.startDiscoverServices();
         }
+
+        public void StopDiscovery() {
+            wifiptp.stopDiscoverServices();
+        }
+
+        public void GoBack() {
+            SupportFragmentManager.PopBackStack();
+        }
+
+        public void Send(MyServiceInfo device) {
+
+            // send
+            if (device != null)
+            {
+                IPAddress ipAddress = new IPAddress(device.Host.GetAddress());
+                IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, device.Port);
+                wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
+            }
+
+        }
+
+
+        /**************************** status listener **************************/
 
         // updates from Wifiptp
         public void NsdRegistered(string serviceName)
         {
             RunOnUiThread(() =>
             {
-                discoverableSwitch.Checked = true;
-                EnableAllSwitches();
+                // set action icon to visible
+                optionsMenu.GetItem(0).SetIcon(Resource.Drawable.design_ic_visibility);
+
+                // TODO update with fragment (they need to enable buttons)
+                isVisible = true;
                 myServiceName = serviceName;
-                Title = myServiceName;
+                SupportActionBar.Title = myServiceName;
             });
         }
 
@@ -266,11 +270,13 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                discoverableSwitch.Checked = false;
-                discoverableSwitch.Enabled = true;
-                searchSwitch.Enabled = false;
+                // set action icon to invisible
+                optionsMenu.GetItem(0).SetIcon(Resource.Drawable.design_ic_visibility_off);
+
+                // TODO update with fragment (they need to enable buttons)
+                isVisible = false;
                 myServiceName = null;
-                Title = "Service Not Registered";
+                SupportActionBar.Title = "Not Visible";
             });
         }
 
@@ -278,14 +284,11 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                discoverableSwitch.Checked = false;
-                discoverableSwitch.Enabled = true;
-                searchSwitch.Enabled = false;
-
+                // TODO update with fragment (they need to enable buttons)
                 if (error.Equals(Wifiptp.Error.NoWifi))
                 {
                     // let user know
-                    Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Network Service Registration Failed", Snackbar.LengthLong).Show();
+                    Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Network Service Registration Failed", Snackbar.LengthLong).Show();
                 }
             });
         }
@@ -294,23 +297,22 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                discoverableSwitch.Checked = true;
-                EnableAllSwitches();
+                // TODO update with fragment (they need to enable buttons)
 
                 // let user know about error
-                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Network Service Unregistration Failed", Snackbar.LengthLong).Show();
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Network Service Unregistration Failed", Snackbar.LengthLong).Show();
             });
         }
 
 
         public void StartDiscoveryFailed(Wifiptp.Error error)
         {
-            searchSwitch.Checked = false;
-            EnableAllSwitches();
+            // TODO update with fragment (they need to enable buttons)
+
             if (error.Equals(Wifiptp.Error.NoWifi))
             {
                 // let user know
-                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Error, no WIFI", Snackbar.LengthLong).Show();
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Error, no WIFI", Snackbar.LengthLong).Show();
             }
         }
 
@@ -318,9 +320,7 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                searchSwitch.Checked = true;
-                EnableAllSwitches();
-                EnableLists();
+                // TODO update with fragment (they need to enable buttons)
             });
         }
 
@@ -329,8 +329,7 @@ namespace wifiptp
 
             RunOnUiThread(() =>
             {
-                searchSwitch.Checked = true;
-                EnableAllSwitches();
+                // TODO update with fragment (they need to enable buttons)
             });
         }
 
@@ -338,10 +337,8 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                searchSwitch.Checked = false;
                 deviceListadapter.Clear();
-                EnableAllSwitches();
-                DisableLists();
+                // TODO update with fragment (they need to enable buttons, clear device list)
             });
         }
 
@@ -373,15 +370,10 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Connected, transfering", Snackbar.LengthLong).Show();
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Connected, transfering", Snackbar.LengthLong).Show();
 
                 // stop discovery, disable buttons and list
-                DisableAllSwitches();
-                shareButton.Enabled = false;
-                if (server)
-                    serverStatusTextView.Text = "Connected";
-                else
-                    clientStatusTextView.Text = "Connected";
+                // TODO disable buttons
             });
         }
 
@@ -389,21 +381,23 @@ namespace wifiptp
         {
             RunOnUiThread(() =>
             {
-                Snackbar.Make(FindViewById(Resource.Id.myCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
+                // TODO enable buttons
 
-                // restart discovery, enable buttons and list
-                EnableAllSwitches();
-                shareButton.Enabled = true;
-                if (server)
-                    serverStatusTextView.Text = "Disconnected";
-                else
-                    clientStatusTextView.Text = "Disconnected";
+                clearBackstack();
 
-                // clear all selections
-                fileListView.SetItemChecked(0, true);
-                fileListView.ClearChoices();
-                deviceListView.SetItemChecked(0, true);
-                deviceListView.ClearChoices();
+                if (!server) {
+                    // go  to main screen, clear list selection, stop discovery
+                    StopDiscovery();
+                    selectedFiles.Clear();
+
+                    // go to main screen
+                    Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+                    FilesViewFragment f = new FilesViewFragment();
+                    t.Replace(Resource.Id.fragmentHolder, f);
+                    t.Commit();
+                }
+
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
             });
         }
 
@@ -418,21 +412,6 @@ namespace wifiptp
             }
         }
 
-        private void refreshFileList()
-        {
-            fileListAdapter.Clear();
-            File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
-            foreach (File file in files)
-            {
-                fileListAdapter.Add(new MyFile(file));
-            }
-        }
-
-        private void clearFileListSelection()
-        {
-            fileListView.SetItemChecked(0, true);
-            fileListView.ClearChoices();
-        }
     }
 
     public class VisibleFilesFilter : Java.Lang.Object, IFileFilter

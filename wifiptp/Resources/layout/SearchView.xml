@@ -8,14 +8,6 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/searchActionBar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:elevation="4dp"
-            android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
         <ListView
             android:id="@+id/deviceListView"
             android:layout_width="match_parent"
@@ -30,14 +22,14 @@
             android:gravity="center_horizontal"
             android:weightSum="2">
             <Button
-                android:id="@+id/deleteButton"
+                android:id="@+id/backButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 style="?android:attr/borderlessButtonStyle"
                 android:text="Back" />
             <Button
-                android:id="@+id/shareButton"
+                android:id="@+id/sendButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
