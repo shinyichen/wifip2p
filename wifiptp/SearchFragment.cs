@@ -74,5 +74,12 @@ namespace wifiptp
 
             };
         }
+
+        public override void OnPause()
+        {
+            base.OnPause();
+
+            mainActivity.StopDiscovery();
+        }
     }
 }

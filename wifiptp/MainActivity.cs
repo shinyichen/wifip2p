@@ -25,6 +25,12 @@ namespace wifiptp
 
         private const string serviceName = "backpack";
 
+        private const int FILES_VIEW = 0;
+
+        private const int SEARCH_VIEW = 1;
+
+        private int currentFragment = FILES_VIEW;
+
         private Wifiptp wifiptp;
 
         private bool isVisible = false;
@@ -140,6 +146,7 @@ namespace wifiptp
             Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
             t.Replace(Resource.Id.fragmentHolder, new FilesViewFragment());
             t.Commit();
+            currentFragment = FILES_VIEW;
                                                           
         }
 
@@ -222,6 +229,7 @@ namespace wifiptp
             t.Replace(Resource.Id.fragmentHolder, f);
             t.AddToBackStack(null);
             t.Commit();
+            currentFragment = SEARCH_VIEW;
         }
 
         public void StartDiscovery() {
@@ -263,6 +271,13 @@ namespace wifiptp
                 isVisible = true;
                 myServiceName = serviceName;
                 SupportActionBar.Title = myServiceName;
+
+                // if user is at search view and turns on visibility
+                // start searching
+                if (currentFragment == SEARCH_VIEW)
+                {
+                    wifiptp.startDiscoverServices();
+                }
             });
         }
 
@@ -321,6 +336,7 @@ namespace wifiptp
             RunOnUiThread(() =>
             {
                 // TODO update with fragment (they need to enable buttons)
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Discovery Started", Snackbar.LengthShort).Show();
             });
         }
 
@@ -330,6 +346,7 @@ namespace wifiptp
             RunOnUiThread(() =>
             {
                 // TODO update with fragment (they need to enable buttons)
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Discovery Stopped", Snackbar.LengthShort).Show();
             });
         }
 
@@ -395,6 +412,7 @@ namespace wifiptp
                     FilesViewFragment f = new FilesViewFragment();
                     t.Replace(Resource.Id.fragmentHolder, f);
                     t.Commit();
+                    currentFragment = FILES_VIEW;
                 }
 
                 Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
