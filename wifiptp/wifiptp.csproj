@@ -123,6 +123,7 @@
     <Compile Include="SearchFragment.cs" />
     <Compile Include="FilesViewFragment.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
+    <Compile Include="FileListViewAdapter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -151,6 +152,7 @@
     <AndroidResource Include="Resources\menu\ActionMenu.xml" />
     <AndroidResource Include="Resources\drawable\ic_visibility_off_white_24dp.png" />
     <AndroidResource Include="Resources\layout\MainActivityLayout.axml" />
+    <AndroidResource Include="Resources\menu\FileActionMenu.xml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable\" />

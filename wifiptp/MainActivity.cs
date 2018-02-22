@@ -51,9 +51,9 @@ namespace wifiptp
 
         private List<string> foundServices = new List<string>();
 
-        private ArrayAdapter fileListAdapter;
+        private FileListViewAdapter fileListAdapter;
 
-        public ArrayAdapter FileListAdapter {
+        public FileListViewAdapter FileListAdapter {
             get {
                 return fileListAdapter;
             }
@@ -93,51 +93,19 @@ namespace wifiptp
             SetSupportActionBar(toolbar);
 
             // initialize file list adapter
-            fileListAdapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemMultipleChoice);
-            fileListAdapter.SetNotifyOnChange(true);
             File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
+            List<MyFile> fileList = new List<MyFile>();
             foreach (File file in files)
             {
-                fileListAdapter.Add(new MyFile(file));
+                fileList.Add(new MyFile(file));
             }
+            fileListAdapter = new FileListViewAdapter(this, fileList);
+            fileListAdapter.NotifyDataSetChanged();
+
 
             // init device list adapter
             deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
             deviceListadapter.SetNotifyOnChange(true);
-
-            // init 
-
-            //         discoverableSwitch = (Switch)FindViewById(Resource.Id.discoverableSwitch);
-            //         discoverableSwitch.CheckedChange += (sender, e) => {
-            //             if (e.IsChecked) {
-            //                 DisableAllSwitches();
-            //                 wifiptp.setDiscoverable(true);
-            //             } else {
-            //                 DisableAllSwitches();
-            //                 wifiptp.setDiscoverable(false);
-            //             }
-            //         };
-
-            //         searchSwitch = (Switch)FindViewById(Resource.Id.searchSwitch);
-            //         searchSwitch.Enabled = false;
-            //         searchSwitch.CheckedChange += (sender, e) => {
-            //             if (e.IsChecked)
-            //             {
-            //                 DisableAllSwitches();
-            //                 wifiptp.startDiscoverServices();
-            //             }
-            //             else
-            //             {
-            //                 DisableAllSwitches();
-            //                 wifiptp.stopDiscoverServices();
-            //             }
-            //         };
-
-
-
-
-
-
 
 
 
@@ -207,6 +175,10 @@ namespace wifiptp
             }
         }
 
+
+        private void openFile(File f) {
+            Uri uri;
+        }
       
         /**************** public methods **************/
 
@@ -219,6 +191,7 @@ namespace wifiptp
             {
                 fileListAdapter.Add(new MyFile(file));
             }
+            fileListAdapter.NotifyDataSetChanged();
         }
 
         // called by FilesViewFragment when use click share
@@ -428,6 +401,7 @@ namespace wifiptp
             {
                 fileListAdapter.Add(new MyFile(file));
             }
+            fileListAdapter.NotifyDataSetChanged();
         }
 
     }

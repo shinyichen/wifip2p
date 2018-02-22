@@ -9,6 +9,7 @@
 
     <!-- Base theme applied no matter what API -->
     <style name="MyTheme.Base" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionModeOverlay">true</item>
         <!--If you are using revision 22.1 please use just windowNoTitle. Without android:-->
         <!--    <item name="windowNoTitle">true</item>-->
         <!-- Set theme colors from http://www.google.com/design/spec/style/color.html#color-color-palette-->
