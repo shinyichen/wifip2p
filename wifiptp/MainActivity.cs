@@ -41,14 +41,6 @@ namespace wifiptp
             }
         }
 
-        //private Switch discoverableSwitch;
-
-        //private Switch searchSwitch;
-
-        //private TextView serverStatusTextView;
-
-        //private TextView clientStatusTextView;
-
         private List<string> foundServices = new List<string>();
 
         private FileListViewAdapter fileListAdapter;
@@ -197,12 +189,14 @@ namespace wifiptp
         // called by FilesViewFragment when use click share
         public void Share(List<string> files) {
             selectedFiles = files;
-            Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+            //Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+            //SearchFragment f = new SearchFragment();
+            //t.Replace(Resource.Id.fragmentHolder, f);
+            //t.AddToBackStack(null);
+            //t.Commit();
+            //currentFragment = SEARCH_VIEW;
             SearchFragment f = new SearchFragment();
-            t.Replace(Resource.Id.fragmentHolder, f);
-            t.AddToBackStack(null);
-            t.Commit();
-            currentFragment = SEARCH_VIEW;
+            f.Show(SupportFragmentManager, "");
         }
 
         public void StartDiscovery() {

@@ -100,7 +100,6 @@ namespace wifiptp
                             break;
                         case Resource.Id.action_share:
                             shareSelectedFiles();
-                            actionMode.Finish();
                             break;
                             
                     }

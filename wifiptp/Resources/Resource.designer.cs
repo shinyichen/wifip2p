@@ -3308,8 +3308,8 @@ namespace wifiptp
 			// aapt resource value: 0x7f090080
 			public const int action_context_bar = 2131296384;
 			
-			// aapt resource value: 0x7f0900de
-			public const int action_delete = 2131296478;
+			// aapt resource value: 0x7f0900e0
+			public const int action_delete = 2131296480;
 			
 			// aapt resource value: 0x7f0900c4
 			public const int action_divider = 2131296452;
@@ -3332,14 +3332,14 @@ namespace wifiptp
 			// aapt resource value: 0x7f09005f
 			public const int action_mode_close_button = 2131296351;
 			
-			// aapt resource value: 0x7f0900df
-			public const int action_share = 2131296479;
+			// aapt resource value: 0x7f0900e1
+			public const int action_share = 2131296481;
 			
 			// aapt resource value: 0x7f0900bf
 			public const int action_text = 2131296447;
 			
-			// aapt resource value: 0x7f0900dd
-			public const int action_visible = 2131296477;
+			// aapt resource value: 0x7f0900df
+			public const int action_visible = 2131296479;
 			
 			// aapt resource value: 0x7f0900cd
 			public const int actions = 2131296461;
@@ -3371,8 +3371,8 @@ namespace wifiptp
 			// aapt resource value: 0x7f090052
 			public const int auto = 2131296338;
 			
-			// aapt resource value: 0x7f0900d8
-			public const int backButton = 2131296472;
+			// aapt resource value: 0x7f0900da
+			public const int backButton = 2131296474;
 			
 			// aapt resource value: 0x7f090040
 			public const int beginning = 2131296320;
@@ -3449,8 +3449,11 @@ namespace wifiptp
 			// aapt resource value: 0x7f090097
 			public const int design_navigation_view = 2131296407;
 			
-			// aapt resource value: 0x7f0900d7
-			public const int deviceListView = 2131296471;
+			// aapt resource value: 0x7f0900d9
+			public const int deviceEmptyView = 2131296473;
+			
+			// aapt resource value: 0x7f0900d8
+			public const int deviceListView = 2131296472;
 			
 			// aapt resource value: 0x7f090031
 			public const int disableHome = 2131296305;
@@ -3569,14 +3572,14 @@ namespace wifiptp
 			// aapt resource value: 0x7f0900a0
 			public const int mainCoordinatorLayout = 2131296416;
 			
-			// aapt resource value: 0x7f0900dc
-			public const int masked = 2131296476;
+			// aapt resource value: 0x7f0900de
+			public const int masked = 2131296478;
 			
 			// aapt resource value: 0x7f0900c3
 			public const int media_actions = 2131296451;
 			
-			// aapt resource value: 0x7f0900da
-			public const int message = 2131296474;
+			// aapt resource value: 0x7f0900dc
+			public const int message = 2131296476;
 			
 			// aapt resource value: 0x7f090041
 			public const int middle = 2131296321;
@@ -3746,6 +3749,9 @@ namespace wifiptp
 			// aapt resource value: 0x7f090058
 			public const int scrollable = 2131296344;
 			
+			// aapt resource value: 0x7f0900d7
+			public const int searchView = 2131296471;
+			
 			// aapt resource value: 0x7f090083
 			public const int search_badge = 2131296387;
 			
@@ -3785,8 +3791,8 @@ namespace wifiptp
 			// aapt resource value: 0x7f09008d
 			public const int select_dialog_listview = 2131296397;
 			
-			// aapt resource value: 0x7f0900d9
-			public const int sendButton = 2131296473;
+			// aapt resource value: 0x7f0900db
+			public const int sendButton = 2131296475;
 			
 			// aapt resource value: 0x7f090077
 			public const int shortcut = 2131296375;
@@ -3920,8 +3926,8 @@ namespace wifiptp
 			// aapt resource value: 0x7f090016
 			public const int view_offset_helper = 2131296278;
 			
-			// aapt resource value: 0x7f0900db
-			public const int visible = 2131296475;
+			// aapt resource value: 0x7f0900dd
+			public const int visible = 2131296477;
 			
 			// aapt resource value: 0x7f0900b5
 			public const int volume_item_container = 2131296437;

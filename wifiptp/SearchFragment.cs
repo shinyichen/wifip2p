@@ -7,7 +7,7 @@ using Android.Support.Design.Widget;
 
 namespace wifiptp
 {
-    public class SearchFragment : Fragment
+    public class SearchFragment : DialogFragment
     {
         private MainActivity mainActivity;
 
@@ -19,12 +19,6 @@ namespace wifiptp
 
         private Button sendButton;
 
-        public override void OnCreate(Bundle savedInstanceState)
-        {
-            base.OnCreate(savedInstanceState);
-
-            // Create your fragment here
-        }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
@@ -32,17 +26,11 @@ namespace wifiptp
             // return inflater.Inflate(Resource.Layout.YourFragment, container, false);
 
 
-            return inflater.Inflate(Resource.Layout.SearchView, container, false);
-        }
-
-        public override void OnViewCreated(View view, Bundle savedInstanceState)
-        {
-            
-            base.OnViewCreated(view, savedInstanceState);
-
+            View view = inflater.Inflate(Resource.Layout.SearchView, container, false);
             mainActivity = (MainActivity)Activity;
 
-            if (mainActivity.Visible) {
+            if (mainActivity.Visible)
+            {
                 mainActivity.StartDiscovery();
             }
 
@@ -51,9 +39,13 @@ namespace wifiptp
             deviceListView.ChoiceMode = ChoiceMode.Single;
             deviceListView.Adapter = mainActivity.DeviceListAdapter;
 
+            View emptyView = view.FindViewById(Resource.Id.deviceEmptyView);
+            deviceListView.EmptyView = emptyView;
+
             backButton = (Button)view.FindViewById(Resource.Id.backButton);
             backButton.Click += (sender, e) => {
-                mainActivity.GoBack();
+                //mainActivity.GoBack();
+                Dismiss();
             };
 
             sendButton = (Button)view.FindViewById(Resource.Id.sendButton);
@@ -70,10 +62,14 @@ namespace wifiptp
                 {
                     MyServiceInfo selectedDevice = (MyServiceInfo)mainActivity.DeviceListAdapter.GetItem(pos);
                     mainActivity.Send(selectedDevice);
+                    Dismiss();
                 }
 
             };
+
+            return view;
         }
+
 
         public override void OnPause()
         {
