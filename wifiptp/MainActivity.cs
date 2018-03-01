@@ -41,15 +41,12 @@ namespace wifiptp
             }
         }
 
-        private List<string> foundServices = new List<string>();
+        private SwipeRefreshLayout refreshLayout;
+
 
         private FileListViewAdapter fileListAdapter;
 
-        public FileListViewAdapter FileListAdapter {
-            get {
-                return fileListAdapter;
-            }
-        }
+        private ListView fileListView;
 
         private ArrayAdapter deviceListadapter;
 
@@ -71,6 +68,7 @@ namespace wifiptp
 
         private string myServiceName;
 
+        private Android.Support.V7.View.ActionMode actionMode = null;
 
 
 
@@ -99,14 +97,33 @@ namespace wifiptp
             deviceListadapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItemSingleChoice);
             deviceListadapter.SetNotifyOnChange(true);
 
+            // refresh layout
+            refreshLayout = (SwipeRefreshLayout)FindViewById(Resource.Id.refreshLayout);
+            OnRefreshListener refreshListener = new OnRefreshListener(() =>
+            {
+                if (actionMode == null)
+                    refreshFileList();
+                refreshLayout.Refreshing = false;
+            });
+            refreshLayout.SetOnRefreshListener(refreshListener);
 
+            // file list view
+            fileListView = FindViewById<ListView>(Resource.Id.fileListView);
+            fileListView.ChoiceMode = ChoiceMode.Multiple;
+            fileListView.Adapter = fileListAdapter;
+
+            // http://www.androhub.com/android-contextual-action-mode-over-toolbar/
+            fileListView.OnItemClickListener = new ItemClickListener((int pos) => {
+                if (actionMode != null)
+                {
+                    selectListItem(pos);
+                }
+            });
+            fileListView.OnItemLongClickListener = new ItemLongClickListener((int pos) => {
+                selectListItem(pos);
+            });
 
             wifiptp = new Wifiptp(serviceName, this, this);
-
-            Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
-            t.Replace(Resource.Id.fragmentHolder, new FilesViewFragment());
-            t.Commit();
-            currentFragment = FILES_VIEW;
                                                           
         }
 
@@ -169,13 +186,105 @@ namespace wifiptp
 
 
         private void openFile(File f) {
-            Uri uri;
+            // TODO
         }
-      
-        /**************** public methods **************/
 
+        private void selectListItem(int pos)
+        {
+            fileListAdapter.ToggleSelection(pos);
 
-        public void RefreshFileList()
+            bool hasCheckedItem = fileListAdapter.getSelectedCount() > 0;
+            if (hasCheckedItem && actionMode == null)
+            {
+                actionMode = StartSupportActionMode(new ToolbarActionCallback(
+                    (Android.Support.V7.View.ActionMode mode, IMenu menu) => {
+                        // action created
+                        mode.MenuInflater.Inflate(Resource.Menu.FileActionMenu, menu);
+                    }, (Android.Support.V7.View.ActionMode mode, IMenuItem item) => {
+                        // action item clicked
+
+                        switch (item.ItemId)
+                        {
+                            case Resource.Id.action_delete:
+                                deleteSelectedFiles();
+                                actionMode.Finish();
+                                break;
+                            case Resource.Id.action_share:
+                                shareSelectedFiles();
+                                break;
+
+                        }
+                    }, () => {
+                        // action mode destroyed
+                        // clear list selection
+                        fileListAdapter.RemoveSelections();
+                        actionMode = null;
+                    }));
+            }
+            else if (!hasCheckedItem && actionMode != null)
+            {
+                actionMode.Finish();
+            }
+        }
+
+        private void deleteSelectedFiles()
+        {
+            SparseBooleanArray selected = fileListAdapter.getSelectedIds();
+
+            if (selected.Size() == 0)
+            {
+                Snackbar.Make(FindViewById(Resource.Id.filesCoordinateLayout), "Must select files.", Snackbar.LengthShort).Show();
+            }
+            else
+            {
+                // delete files
+                int pos;
+                for (int i = 0; i < selected.Size(); i++)
+                {
+                    pos = selected.KeyAt(i);
+                    if (selected.ValueAt(i))
+                    { // selected
+                        ((MyFile)fileListAdapter.GetItem(pos)).File.Delete();
+                    }
+                }
+
+                // clear selection
+                fileListAdapter.RemoveSelections();
+
+                refreshFileList();
+            }
+        }
+
+        private void shareSelectedFiles()
+        {
+            int pos;
+            SparseBooleanArray selected = fileListAdapter.getSelectedIds();
+            List<string> selectedF = new List<string>();
+            for (int i = 0; i < selected.Size(); i++)
+            {
+                pos = selected.KeyAt(i);
+                if (selected.ValueAt(i))
+                { // selected
+                    selectedF.Add(((MyFile)fileListAdapter.GetItem(pos)).File.AbsolutePath);
+                }
+            }
+
+            if (!isVisible)
+            {
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Must set device to visible.", Snackbar.LengthShort).Show();
+            }
+            else if (selectedF.Count == 0)
+            {
+                Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Must select files.", Snackbar.LengthShort).Show();
+            }
+            else
+            {
+                // go to search view
+                share(selectedF);
+            }
+        }
+
+        private void refreshFileList()
         {
             fileListAdapter.Clear();
             File[] files = GetExternalFilesDir(null).ListFiles(new VisibleFilesFilter());
@@ -186,18 +295,17 @@ namespace wifiptp
             fileListAdapter.NotifyDataSetChanged();
         }
 
-        // called by FilesViewFragment when use click share
-        public void Share(List<string> files) {
+        private void share(List<string> files)
+        {
+            // open search fragment in a popup dialog
             selectedFiles = files;
-            //Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
-            //SearchFragment f = new SearchFragment();
-            //t.Replace(Resource.Id.fragmentHolder, f);
-            //t.AddToBackStack(null);
-            //t.Commit();
-            //currentFragment = SEARCH_VIEW;
             SearchFragment f = new SearchFragment();
             f.Show(SupportFragmentManager, "");
+
+            // TODO disable all actions until disconnection
         }
+      
+        /**************** public methods **************/
 
         public void StartDiscovery() {
             wifiptp.startDiscoverServices();
@@ -219,6 +327,7 @@ namespace wifiptp
                 IPAddress ipAddress = new IPAddress(device.Host.GetAddress());
                 IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, device.Port);
                 wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
+                actionMode.Finish();
             }
 
         }
@@ -367,7 +476,7 @@ namespace wifiptp
             {
                 // TODO enable buttons
 
-                clearBackstack();
+                //clearBackstack();
 
                 if (!server) {
                     // go  to main screen, clear list selection, stop discovery
@@ -375,11 +484,11 @@ namespace wifiptp
                     selectedFiles.Clear();
 
                     // go to main screen
-                    Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
-                    FilesViewFragment f = new FilesViewFragment();
-                    t.Replace(Resource.Id.fragmentHolder, f);
-                    t.Commit();
-                    currentFragment = FILES_VIEW;
+                    //Android.Support.V4.App.FragmentTransaction t = SupportFragmentManager.BeginTransaction();
+                    //FilesViewFragment f = new FilesViewFragment();
+                    //t.Replace(Resource.Id.fragmentHolder, f);
+                    //t.Commit();
+                    //currentFragment = FILES_VIEW;
                 }
 
                 Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
@@ -396,6 +505,75 @@ namespace wifiptp
                 fileListAdapter.Add(new MyFile(file));
             }
             fileListAdapter.NotifyDataSetChanged();
+        }
+
+        private class ItemClickListener : Java.Lang.Object, AdapterView.IOnItemClickListener
+        {
+            private Action<int> itemClickAction;
+
+            public ItemClickListener(Action<int> itemClickAction)
+            {
+                this.itemClickAction = itemClickAction;
+            }
+
+            public void OnItemClick(AdapterView parent, View view, int position, long id)
+            {
+                itemClickAction(position);
+            }
+        }
+
+        private class ItemLongClickListener : Java.Lang.Object, AdapterView.IOnItemLongClickListener
+        {
+            private Action<int> itemClickAction;
+
+            public ItemLongClickListener(Action<int> itemClickAction)
+            {
+                this.itemClickAction = itemClickAction;
+            }
+
+            public bool OnItemLongClick(AdapterView parent, View view, int position, long id)
+            {
+                itemClickAction(position);
+                return true;
+            }
+        }
+
+        private class ToolbarActionCallback : Java.Lang.Object, Android.Support.V7.View.ActionMode.ICallback
+        {
+            private Action<Android.Support.V7.View.ActionMode, IMenu> actionCreatedAction;
+            private Action<Android.Support.V7.View.ActionMode, IMenuItem> actionItemClickedAction;
+            private Action actionDestroyAction;
+
+            public ToolbarActionCallback(Action<Android.Support.V7.View.ActionMode, IMenu> actionCreatedAction,
+                                         Action<Android.Support.V7.View.ActionMode, IMenuItem> actionItemClickedAction,
+                                        Action actionDestroyAction)
+            {
+                this.actionCreatedAction = actionCreatedAction;
+                this.actionItemClickedAction = actionItemClickedAction;
+                this.actionDestroyAction = actionDestroyAction;
+            }
+
+            public bool OnActionItemClicked(Android.Support.V7.View.ActionMode mode, IMenuItem item)
+            {
+                actionItemClickedAction(mode, item);
+                return true;
+            }
+
+            public bool OnCreateActionMode(Android.Support.V7.View.ActionMode mode, IMenu menu)
+            {
+                actionCreatedAction(mode, menu);
+                return true;
+            }
+
+            public void OnDestroyActionMode(Android.Support.V7.View.ActionMode mode)
+            {
+                actionDestroyAction();
+            }
+
+            public bool OnPrepareActionMode(Android.Support.V7.View.ActionMode mode, IMenu menu)
+            {
+                return true;
+            }
         }
 
     }
@@ -422,5 +600,7 @@ namespace wifiptp
             refresh();
         }
     }
+
+
 }
 

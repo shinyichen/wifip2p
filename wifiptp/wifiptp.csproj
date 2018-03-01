@@ -121,7 +121,6 @@
     <Compile Include="MyFile.cs" />
     <Compile Include="Api\Utils.cs" />
     <Compile Include="SearchFragment.cs" />
-    <Compile Include="FilesViewFragment.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="FileListViewAdapter.cs" />
   </ItemGroup>
