@@ -328,6 +328,7 @@ namespace wifiptp
                 IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, device.Port);
                 wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
                 actionMode.Finish();
+                Window.AddFlags(WindowManagerFlags.NotTouchable);
             }
 
         }
@@ -465,6 +466,11 @@ namespace wifiptp
             {
                 Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Connected, transfering", Snackbar.LengthLong).Show();
 
+                // disable touch action if server
+                // client should already have disabled action before connection
+                if (server) {
+                    Window.AddFlags(WindowManagerFlags.NotTouchable);
+                }
                 // stop discovery, disable buttons and list
                 // TODO disable buttons
             });
@@ -489,9 +495,13 @@ namespace wifiptp
                     //t.Replace(Resource.Id.fragmentHolder, f);
                     //t.Commit();
                     //currentFragment = FILES_VIEW;
+
                 }
 
                 Snackbar.Make(FindViewById(Resource.Id.mainCoordinatorLayout), "Transfer complete, disconnecting", Snackbar.LengthLong).Show();
+
+                // enable touch screen
+                Window.ClearFlags(WindowManagerFlags.NotTouchable);
             });
         }
 
