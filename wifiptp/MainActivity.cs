@@ -25,12 +25,6 @@ namespace wifiptp
 
         private const string serviceName = "backpack";
 
-        private const int FILES_VIEW = 0;
-
-        private const int SEARCH_VIEW = 1;
-
-        private int currentFragment = FILES_VIEW;
-
         private Wifiptp wifiptp;
 
         private bool isVisible = false;
@@ -117,6 +111,9 @@ namespace wifiptp
                 if (actionMode != null)
                 {
                     selectListItem(pos);
+                } else {
+                    // open file
+                    OpenSelectedFile(pos);
                 }
             });
             fileListView.OnItemLongClickListener = new ItemLongClickListener((int pos) => {
@@ -178,15 +175,10 @@ namespace wifiptp
 
         /**************** private methods *************/
 
-        private void clearBackstack() {
-            for (int i = 0; i < SupportFragmentManager.BackStackEntryCount; i++) {
-                SupportFragmentManager.PopBackStack();
-            }
-        }
-
-
-        private void openFile(File f) {
+        private void OpenSelectedFile(int pos) {
             // TODO
+            MyFile file = (MyFile)fileListAdapter.GetItem(pos);
+            OpenFile(file.File);
         }
 
         private void selectListItem(int pos)
@@ -295,6 +287,76 @@ namespace wifiptp
             fileListAdapter.NotifyDataSetChanged();
         }
 
+        private void OpenFile(File file) {
+
+            Android.Net.Uri uri = Android.Net.Uri.FromFile(file);
+
+            Intent intent = new Intent(Intent.ActionView);
+
+            if (file.ToString().Contains(".doc") || file.ToString().Contains(".docx"))
+            {
+                // Word document
+                intent.SetDataAndType(uri, "application/msword");
+            }
+            else if (file.ToString().Contains(".pdf"))
+            {
+                // PDF file
+                intent.SetDataAndType(uri, "application/pdf");
+            }
+            else if (file.ToString().Contains(".ppt") || file.ToString().Contains(".pptx"))
+            {
+                // Powerpoint file
+                intent.SetDataAndType(uri, "application/vnd.ms-powerpoint");
+            }
+            else if (file.ToString().Contains(".xls") || file.ToString().Contains(".xlsx"))
+            {
+                // Excel file
+                intent.SetDataAndType(uri, "application/vnd.ms-excel");
+            }
+            else if (file.ToString().Contains(".zip") || file.ToString().Contains(".rar"))
+            {
+                // WAV audio file
+                intent.SetDataAndType(uri, "application/x-wav");
+            }
+            else if (file.ToString().Contains(".rtf"))
+            {
+                // RTF file
+                intent.SetDataAndType(uri, "application/rtf");
+            }
+            else if (file.ToString().Contains(".wav") || file.ToString().Contains(".mp3"))
+            {
+                // WAV audio file
+                intent.SetDataAndType(uri, "audio/x-wav");
+            }
+            else if (file.ToString().Contains(".gif"))
+            {
+                // GIF file
+                intent.SetDataAndType(uri, "image/gif");
+            }
+            else if (file.ToString().Contains(".jpg") || file.ToString().Contains(".jpeg") || file.ToString().Contains(".png"))
+            {
+                // JPG file
+                intent.SetDataAndType(uri, "image/jpeg");
+            }
+            else if (file.ToString().Contains(".txt"))
+            {
+                // Text file
+                intent.SetDataAndType(uri, "text/plain");
+            }
+            else if (file.ToString().Contains(".3gp") || file.ToString().Contains(".mpg") || file.ToString().Contains(".mpeg") || file.ToString().Contains(".mpe") || file.ToString().Contains(".mp4") || file.ToString().Contains(".avi"))
+            {
+                // Video files
+                intent.SetDataAndType(uri, "video/*");
+            }
+            else
+            {
+                intent.SetDataAndType(uri, "*/*");
+            }
+
+            intent.AddFlags(ActivityFlags.NewTask);
+            StartActivity(intent);
+        }
+
         private void share(List<string> files)
         {
             // open search fragment in a popup dialog
@@ -313,10 +375,6 @@ namespace wifiptp
 
         public void StopDiscovery() {
             wifiptp.stopDiscoverServices();
-        }
-
-        public void GoBack() {
-            SupportFragmentManager.PopBackStack();
         }
 
         public void Send(MyServiceInfo device) {
@@ -349,12 +407,6 @@ namespace wifiptp
                 myServiceName = serviceName;
                 SupportActionBar.Title = myServiceName;
 
-                // if user is at search view and turns on visibility
-                // start searching
-                if (currentFragment == SEARCH_VIEW)
-                {
-                    wifiptp.startDiscoverServices();
-                }
             });
         }
 

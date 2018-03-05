@@ -44,7 +44,6 @@ namespace wifiptp
 
             backButton = (Button)view.FindViewById(Resource.Id.backButton);
             backButton.Click += (sender, e) => {
-                //mainActivity.GoBack();
                 Dismiss();
             };
 
