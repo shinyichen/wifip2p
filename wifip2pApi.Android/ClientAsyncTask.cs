@@ -8,7 +8,7 @@ using System.Threading;
 using Android.OS;
 using Android.Util;
 
-namespace wifiptp
+namespace wifip2pApi.Android
 {
     public class ClientAsyncTask : AsyncTask
     {

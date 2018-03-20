@@ -1,5 +1,5 @@
 ﻿using System;
-namespace wifiptp
+namespace wifip2pApi.Android
 {
     public interface ITaskProgress
     {

@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/listItemText"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="10dp" />
+    android:layout_height="60dp"
+    android:orientation="horizontal">
+    <ImageView
+        android:id="@+id/listItemIcon"
+        android:layout_width="100dp"
+        android:layout_height="36dp"
+        android:scaleType="centerInside" />
+    <TextView
+        android:id="@+id/listItemText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="label"
+        android:layout_margin="5dp" />
+</LinearLayout>

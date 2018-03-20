@@ -4,7 +4,7 @@ using Android.Net;
 using Android.Net.Wifi;
 using Android.Util;
 
-namespace wifiptp
+namespace wifip2pApi.Android
 {
     public class WiFiBroadcastReceiver : BroadcastReceiver
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using Android.Net.Nsd;
 
-namespace wifiptp.Api
+namespace wifip2pApi.Android
 {
     public interface StatusChangedListener
     {

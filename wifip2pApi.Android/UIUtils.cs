@@ -3,11 +3,11 @@ using System.IO;
 using System.Net.Sockets;
 using Android.Util;
 
-namespace wifiptp
+namespace wifip2pApi.Android
 {
-    public class Utils
+    public class UIUtils
     {
-        public Utils()
+        public UIUtils()
         {
         }
 

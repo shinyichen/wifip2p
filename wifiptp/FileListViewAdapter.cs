@@ -40,6 +40,7 @@ namespace wifiptp
                 convertView = inflator.Inflate(Resource.Layout.ListItem, parent, false);
                 holder = new ViewHolder();
                 holder.title = (TextView)convertView.FindViewById(Resource.Id.listItemText);
+                holder.thumbnail = (ImageView)convertView.FindViewById(Resource.Id.listItemIcon);
                 convertView.Tag = holder;
             } else {
                 holder = (ViewHolder)convertView.Tag;
@@ -47,7 +48,19 @@ namespace wifiptp
 
             convertView.SetBackgroundColor(selectedIds.Get(position) ? Color.ParseColor("#E0E0E0") : Color.Transparent);
 
-            holder.title.Text = files[position].ToString();
+            MyFile f = files[position];
+            holder.title.Text = f.ToString();
+            if (f.Type == "image/gif" || f.Type == "image/jpeg") {
+                if (f.Thumbnail == null)
+                {
+                    f.Thumbnail = UiUtils.GenerateBitmapFromImage(f.File.AbsolutePath);
+
+                }
+
+                // TODO this will use a lot of memory, save on disk and use path instead?
+                holder.thumbnail.SetImageBitmap(f.Thumbnail);
+            }
+
             return convertView;
         }
 
@@ -89,6 +102,7 @@ namespace wifiptp
         private class ViewHolder : Java.Lang.Object
         {
             public TextView title;
+            public ImageView thumbnail;
         }
     }
 

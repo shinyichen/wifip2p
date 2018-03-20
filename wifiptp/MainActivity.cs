@@ -3,7 +3,6 @@ using Android.Widget;
 using Android.OS;
 using System.Collections.Generic;
 using Android.Util;
-using wifiptp.Api;
 using Android.Net.Nsd;
 using Java.IO;
 using System.Net;
@@ -14,6 +13,7 @@ using Android.Support.V4.Widget;
 using System;
 using Android.Content;
 using Android.Views;
+using wifip2pApi.Android;
 
 namespace wifiptp
 {
@@ -178,7 +178,7 @@ namespace wifiptp
         private void OpenSelectedFile(int pos) {
             // TODO
             MyFile file = (MyFile)fileListAdapter.GetItem(pos);
-            OpenFile(file.File);
+            OpenFile(file);
         }
 
         private void selectListItem(int pos)
@@ -287,72 +287,14 @@ namespace wifiptp
             fileListAdapter.NotifyDataSetChanged();
         }
 
-        private void OpenFile(File file) {
+        private void OpenFile(MyFile file) {
 
-            Android.Net.Uri uri = Android.Net.Uri.FromFile(file);
+            Android.Net.Uri uri = Android.Net.Uri.FromFile(file.File);
+
+            string type = file.Type;
 
             Intent intent = new Intent(Intent.ActionView);
-
-            if (file.ToString().Contains(".doc") || file.ToString().Contains(".docx"))
-            {
-                // Word document
-                intent.SetDataAndType(uri, "application/msword");
-            }
-            else if (file.ToString().Contains(".pdf"))
-            {
-                // PDF file
-                intent.SetDataAndType(uri, "application/pdf");
-            }
-            else if (file.ToString().Contains(".ppt") || file.ToString().Contains(".pptx"))
-            {
-                // Powerpoint file
-                intent.SetDataAndType(uri, "application/vnd.ms-powerpoint");
-            }
-            else if (file.ToString().Contains(".xls") || file.ToString().Contains(".xlsx"))
-            {
-                // Excel file
-                intent.SetDataAndType(uri, "application/vnd.ms-excel");
-            }
-            else if (file.ToString().Contains(".zip") || file.ToString().Contains(".rar"))
-            {
-                // WAV audio file
-                intent.SetDataAndType(uri, "application/x-wav");
-            }
-            else if (file.ToString().Contains(".rtf"))
-            {
-                // RTF file
-                intent.SetDataAndType(uri, "application/rtf");
-            }
-            else if (file.ToString().Contains(".wav") || file.ToString().Contains(".mp3"))
-            {
-                // WAV audio file
-                intent.SetDataAndType(uri, "audio/x-wav");
-            }
-            else if (file.ToString().Contains(".gif"))
-            {
-                // GIF file
-                intent.SetDataAndType(uri, "image/gif");
-            }
-            else if (file.ToString().Contains(".jpg") || file.ToString().Contains(".jpeg") || file.ToString().Contains(".png"))
-            {
-                // JPG file
-                intent.SetDataAndType(uri, "image/jpeg");
-            }
-            else if (file.ToString().Contains(".txt"))
-            {
-                // Text file
-                intent.SetDataAndType(uri, "text/plain");
-            }
-            else if (file.ToString().Contains(".3gp") || file.ToString().Contains(".mpg") || file.ToString().Contains(".mpeg") || file.ToString().Contains(".mpe") || file.ToString().Contains(".mp4") || file.ToString().Contains(".avi"))
-            {
-                // Video files
-                intent.SetDataAndType(uri, "video/*");
-            }
-            else
-            {
-                intent.SetDataAndType(uri, "*/*");
-            }
-
+            intent.SetDataAndType(uri, type);
             intent.AddFlags(ActivityFlags.NewTask);
             StartActivity(intent);
         }

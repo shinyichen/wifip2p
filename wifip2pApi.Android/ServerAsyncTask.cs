@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Threading;
 
-namespace wifiptp.Api
+namespace wifip2pApi.Android
 {
     public class ServerAsyncTask : AsyncTask
     {
@@ -96,7 +96,7 @@ namespace wifiptp.Api
                         {
                             Log.Info(id, "Receiving file from client");
                             outFileStream = File.Create(fileDirectory + "/" + filename);
-                            Utils.CopyStream(client, outFileStream, size);
+                            UIUtils.CopyStream(client, outFileStream, size);
                             Log.Info(id, "Received file length: " + outFileStream.Length);
                             outFileStream.Close();
                         }

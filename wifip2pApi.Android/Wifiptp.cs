@@ -1,6 +1,5 @@
 ﻿using System;
 using Android.Content;
-using wifiptp.Api;
 using Android.Net.Nsd;
 using Android.Net.Wifi;
 using Android.Util;
@@ -10,7 +9,7 @@ using Android.OS;
 using System.Net.Sockets;
 using System.Net;
 
-namespace wifiptp
+namespace wifip2pApi.Android
 {
     public class Wifiptp : ITaskProgress
     {
