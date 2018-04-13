@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using Android.Util;
@@ -13,7 +14,7 @@ namespace wifip2pApi.Android
 
 		public static long CopyStream(Stream source, Stream target, long size)
 		{
-			int bufSize = 1024;
+            int bufSize = 65936;
 			byte[] buf = new byte[bufSize];
 
 			int totalBytes = 0;
@@ -21,28 +22,46 @@ namespace wifip2pApi.Android
 
 
             // use time out
-            source.ReadTimeout = 5000;
-            try {
-
-                while (size > 0)
+            //source.ReadTimeout = 5000;
+            //try {
+            Stopwatch stopwatch = null;
+            while (size > 0)
+            {
+                if ((bytesRead = source.Read(buf, 0, bufSize)) > 0)
                 {
-                    if ((bytesRead = source.Read(buf, 0, bufSize)) > 0)
+                    target.Write(buf, 0, bytesRead);
+                    totalBytes += bytesRead;
+                    size -= bytesRead;
+                    if (size < bufSize)
+                        bufSize = (int)size;
+                    //Log.Info("CopyStream", "loop: " + totalBytes);
+
+                    if (stopwatch != null && stopwatch.IsRunning)
                     {
-                        target.Write(buf, 0, bytesRead);
-                        totalBytes += bytesRead;
-                        size -= bytesRead;
-                        if (size < bufSize)
-                            bufSize = (int)size;
-                        //Log.Info("CopyStream", "loop: " + totalBytes);
+                        stopwatch.Stop();
+                        stopwatch.Reset();
                     }
 
+                } else {
+                    if (stopwatch == null)
+                        stopwatch = Stopwatch.StartNew();
+                    else {
+                        if (stopwatch.ElapsedMilliseconds > 10000) {
+                            // timeout
+                            throw new TimeoutException("Read time out");
+                        } 
+                    }
                 }
 
-            } catch (IOException e) {
-                // read timed out
-                Log.Debug("CopyStream", "Read timed out");
-                throw e;
+                    
+
             }
+
+            //} catch (IOException e) {
+            //    // read timed out
+            //    Log.Debug("CopyStream", "Read timed out");
+            //    throw e;
+            //}
 			
 			return totalBytes;
 		}

@@ -1,11 +1,11 @@
 ﻿using System;
-using System.IO;
 using System.Text;
 using Android.OS;
 using Android.Util;
-using System.Net.Sockets;
-using System.Net;
 using System.Threading;
+using Java.Net;
+using Java.IO;
+using System.IO;
 
 namespace wifip2pApi.Android
 {
@@ -14,7 +14,7 @@ namespace wifip2pApi.Android
         
         private const string id = "ServerService";
         
-        private Socket serverSocket;
+        private ServerSocket serverSocket;
 
         private Java.IO.File fileDirectory;
 
@@ -22,16 +22,16 @@ namespace wifip2pApi.Android
 
         private FileStream outFileStream = null;
 
-        private byte[] buf = new byte[1024];
+        private byte[] buf = new byte[65936];
 
         private bool isListening = false;
 
         private ITaskProgress taskListener;
 
-        public ServerAsyncTask(Socket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
+        public ServerAsyncTask(ServerSocket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
         {
             this.serverSocket = serverSocket;
-            this.port = ((IPEndPoint)serverSocket.LocalEndPoint).Port;
+            this.port = serverSocket.LocalPort;
             this.fileDirectory = directory;
             this.taskListener = taskListener;
         }
@@ -46,8 +46,9 @@ namespace wifip2pApi.Android
         {
 
             Log.Debug(id, "Server Task started");
-            serverSocket.Listen(1);
             Socket client = null;
+            DataInputStream inputStream = null;
+            DataOutputStream outputStream = null;
 
             while (true) // restarting socket after each connection
             {
@@ -63,13 +64,14 @@ namespace wifip2pApi.Android
                     isListening = false;
 
                     Log.Info(id, "Received incoming connection ");
+                    outputStream = new DataOutputStream(client.OutputStream);
+                    inputStream = new DataInputStream(client.InputStream);
 
                     while (true) { // receive files until got 0 (indicate end)
 
                         // 1.1 receive file name size 
                         Log.Debug(id, "Receiving file name size from client");
-                        client.Receive(buf, sizeof(long), SocketFlags.None);
-                        //inputStream.Read(buf, 0, sizeof(long));
+                        inputStream.Read(buf, 0, sizeof(long));
                         int size = (int)BitConverter.ToInt64(buf, 0);
 
                         if (size == 0)
@@ -82,11 +84,11 @@ namespace wifip2pApi.Android
                         // 1.2 receive file name
                         Log.Debug(id, "Receiving file name from client");
                         byte[] name = new byte[size];
-                        client.Receive(name, size, SocketFlags.None);
+                        inputStream.Read(name, 0, size);
                         string filename = Encoding.Default.GetString(name);
 
                         // 1.3 receive file size (as long) from client
-                        client.Receive(buf, sizeof(long), SocketFlags.None);
+                        inputStream.Read(buf, 0, sizeof(long));
                         size = (int)BitConverter.ToInt64(buf, 0);
 
                         Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
@@ -95,15 +97,15 @@ namespace wifip2pApi.Android
                         if (size > 0)
                         {
                             Log.Info(id, "Receiving file from client");
-                            outFileStream = File.Create(fileDirectory + "/" + filename);
-                            UIUtils.CopyStream(client, outFileStream, size);
-                            Log.Info(id, "Received file length: " + outFileStream.Length);
+                            outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
+                            UIUtils.CopyStream(client.InputStream, outFileStream, size);
+                            Log.Info(id, "Received file length: " + size);
                             outFileStream.Close();
                         }
 
                         // send 0 to signal received
                         byte[] sizeData = BitConverter.GetBytes((long)0);
-                        client.Send(sizeData, sizeof(long), SocketFlags.None);
+                        outputStream.Write(sizeData, 0, sizeof(long));
 
                         // files received
                         PublishProgress();
@@ -111,7 +113,7 @@ namespace wifip2pApi.Android
                         // wait for clinet response or timed out
                         Log.Info(id, "Wait for client to send next");
                         int elapsed = 0;
-                        while(client.Available == 0 && elapsed < 7000) {
+                        while(inputStream.Available() == 0 && elapsed < 7000) {
                             Thread.Sleep(1000);
                             elapsed += 1000;
                         }
@@ -130,7 +132,7 @@ namespace wifip2pApi.Android
                     // Socket closed (interrupt)
                     if (IsCancelled)
                         break;
-                } catch (IOException) {
+                } catch (TimeoutException) {
                     // Util.CopyStream read timed out
                     Log.Debug(id, "Read timed out, exit server task");
                 }

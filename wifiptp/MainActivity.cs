@@ -326,7 +326,7 @@ namespace wifiptp
             {
                 IPAddress ipAddress = new IPAddress(device.Host.GetAddress());
                 IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, device.Port);
-                wifiptp.sendFile(ipAddress, ipEndPoint, selectedFiles);
+                wifiptp.sendFile(device.Host, device.Port, selectedFiles);
                 actionMode.Finish();
                 Window.AddFlags(WindowManagerFlags.NotTouchable);
             }

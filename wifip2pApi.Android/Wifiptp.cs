@@ -6,8 +6,7 @@ using Android.Util;
 using System.Collections.Generic;
 using Android.Bluetooth;
 using Android.OS;
-using System.Net.Sockets;
-using System.Net;
+using Java.Net;
 
 namespace wifip2pApi.Android
 {
@@ -32,7 +31,7 @@ namespace wifip2pApi.Android
 
         private NsdManager nsdManager;
 
-        private Socket serverSocket;
+        private ServerSocket serverSocket;
 
         private int port;
 
@@ -264,12 +263,8 @@ namespace wifip2pApi.Android
                 if (nsdStatus == NsdStatus.Unregistered && wifiStatus == WifiStatus.Connected) {
 
                     // Initialize a server socket on the next available port.
-                    IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-                    IPAddress ipAddress = ipHost.AddressList[0];
-                    IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 0);
-                    serverSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-                    serverSocket.Bind(ipEndPoint);
-                    port = ((IPEndPoint)serverSocket.LocalEndPoint).Port;
+                    serverSocket = new ServerSocket(0);
+                    port = serverSocket.LocalPort;
 
                     // register service
                     NsdServiceInfo serviceInfo = new NsdServiceInfo();
@@ -350,10 +345,9 @@ namespace wifip2pApi.Android
         }
 
 
-        public void sendFile(IPAddress ipAddress, IPEndPoint endpoint, List<string> files) {
+        public void sendFile(InetAddress address, int port, List<string> files) {
 
-            Socket clientSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-            ClientAsyncTask clientTask = new ClientAsyncTask(clientSocket, endpoint, files, this);
+            ClientAsyncTask clientTask = new ClientAsyncTask(address, port, files, this);
             clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running
         }
 
