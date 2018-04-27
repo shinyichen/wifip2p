@@ -85,13 +85,17 @@ namespace wifip2pApi.Android
                         Log.Debug(id, "Receiving file name from client");
                         byte[] name = new byte[size];
                         inputStream.Read(name, 0, size);
-                        string filename = Encoding.Default.GetString(name);
+                        string filename = Encoding.Default.GetString(name); // with relative path
 
                         // 1.3 receive file size (as long) from client
                         inputStream.Read(buf, 0, sizeof(long));
                         size = (int)BitConverter.ToInt64(buf, 0);
 
                         Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
+
+                        // create path directory if needed
+                        FileInfo fileInfo = new FileInfo(fileDirectory + "/" + filename);
+                        fileInfo.Directory.Create();
 
                         // 1.4 receive image from client
                         if (size > 0)
