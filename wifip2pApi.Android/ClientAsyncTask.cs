@@ -97,7 +97,7 @@ namespace wifip2pApi.Android
                 Log.Debug(id, "Sending file name size to server");
                 string fileName = Path.GetFileName(filestream.Name);
                 fileName = relativePath + "/" + fileName;
-                byte[] name = Encoding.ASCII.GetBytes(fileName);
+                byte[] name = Encoding.Default.GetBytes(fileName);
                 byte[] sizeData = BitConverter.GetBytes(name.LongLength);
                 outputStream.Write(sizeData, 0, sizeof(long));
 
