@@ -98,9 +98,11 @@ namespace wifip2pApi.Android
                         fileInfo.Directory.Create();
 
                         // 1.4 receive image from client
+
                         if (size > 0)
                         {
                             Log.Info(id, "Receiving file from client");
+                            PublishProgress("Receiving " + filename);
                             outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
                             UIUtils.CopyStream(client.InputStream, outFileStream, size);
                             Log.Info(id, "Received file length: " + size);
@@ -155,7 +157,12 @@ namespace wifip2pApi.Android
 
         protected override void OnProgressUpdate(params Java.Lang.Object[] values)
         {
-            taskListener.OnFilesReceived();
+            if (values != null) {
+                taskListener.OnStatusUpdate((string)values[0]);
+            } else {
+                taskListener.OnFilesReceived();
+            }
+
             base.OnProgressUpdate(values);
         }
 

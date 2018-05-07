@@ -7,6 +7,7 @@ using System.Threading;
 using Android.OS;
 using Android.Util;
 using Java.IO;
+using Java.Lang;
 using Java.Net;
 
 namespace wifip2pApi.Android
@@ -96,6 +97,7 @@ namespace wifip2pApi.Android
                 // 1.1 send file name size as long integer
                 Log.Debug(id, "Sending file name size to server");
                 string fileName = Path.GetFileName(filestream.Name);
+                PublishProgress("Sending " + fileName);
                 fileName = relativePath + "/" + fileName;
                 byte[] name = Encoding.Default.GetBytes(fileName);
                 byte[] sizeData = BitConverter.GetBytes(name.LongLength);
@@ -141,7 +143,7 @@ namespace wifip2pApi.Android
                 int elapsed = 0;
                 while (inputStream.Available() == 0 && elapsed < 7000)
                 {
-                    Thread.Sleep(1000);
+                    Java.Lang.Thread.Sleep(1000);
                     elapsed += 1000;
                 }
 
@@ -166,7 +168,15 @@ namespace wifip2pApi.Android
             }
         }
 
-        protected override void OnPostExecute(Java.Lang.Object result)
+		protected override void OnProgressUpdate(params Java.Lang.Object[] values)
+		{
+            if (values != null) {
+                taskListener.OnStatusUpdate((string)values[0]);
+            }
+			base.OnProgressUpdate(values);
+		}
+
+		protected override void OnPostExecute(Java.Lang.Object result)
         {
             taskListener.OnDisconnected(false);
         }

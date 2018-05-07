@@ -21,5 +21,6 @@ namespace wifip2pApi.Android
         void Connected(bool server);
         void Disconnected(bool server);
         void FilesReceived();
+        void UpdateStatusMessage(string message);
     }
 }

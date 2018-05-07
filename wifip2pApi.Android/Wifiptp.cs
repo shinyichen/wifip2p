@@ -8,7 +8,7 @@ using Android.Bluetooth;
 using Android.OS;
 using Java.Net;
 
-namespace wifip2pApi.Android
+namespace wifip2pApi.Android     
 {
     public class Wifiptp : ITaskProgress
     {
@@ -375,6 +375,11 @@ namespace wifip2pApi.Android
         public void OnDisconnected(bool server)
         {
             statusListener.Disconnected(server);
+        }
+
+        public void OnStatusUpdate(string message)
+        {
+            statusListener.UpdateStatusMessage(message);
         }
     }
 
