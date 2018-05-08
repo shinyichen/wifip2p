@@ -511,6 +511,10 @@ namespace wifiptp
             fileListAdapter.NotifyDataSetChanged();
         }
 
+        public void UpdateStatusMessage(string message)
+        {
+        }
+
         private class ItemClickListener : Java.Lang.Object, AdapterView.IOnItemClickListener
         {
             private Action<int> itemClickAction;
