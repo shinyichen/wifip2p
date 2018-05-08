@@ -170,7 +170,7 @@ namespace wifip2pApi.Android
 
 		protected override void OnProgressUpdate(params Java.Lang.Object[] values)
 		{
-            if (values != null) {
+            if (values != null && values.Length > 0) {
                 taskListener.OnStatusUpdate((string)values[0]);
             }
 			base.OnProgressUpdate(values);
