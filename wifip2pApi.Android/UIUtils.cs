@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using Android.OS;
 using Android.Util;
 
 namespace wifip2pApi.Android
@@ -12,7 +13,7 @@ namespace wifip2pApi.Android
         {
         }
 
-		public static long CopyStream(Stream source, Stream target, long size)
+		public static long CopyStream(AsyncTask task, Stream source, Stream target, long size) 
 		{
             int bufSize = 65936;
 			byte[] buf = new byte[bufSize];
@@ -27,6 +28,11 @@ namespace wifip2pApi.Android
             Stopwatch stopwatch = null;
             while (size > 0)
             {
+                if (task.IsCancelled)
+                {
+                    throw new Java.Lang.Exception("Interrupted");
+                }
+
                 if ((bytesRead = source.Read(buf, 0, bufSize)) > 0)
                 {
                     target.Write(buf, 0, bytesRead);
@@ -46,7 +52,7 @@ namespace wifip2pApi.Android
                     if (stopwatch == null)
                         stopwatch = Stopwatch.StartNew();
                     else {
-                        if (stopwatch.ElapsedMilliseconds > 10000) {
+                        if (stopwatch.ElapsedMilliseconds > 2000) {
                             // timeout
                             throw new TimeoutException("Read time out");
                         } 

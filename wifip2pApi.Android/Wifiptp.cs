@@ -39,6 +39,8 @@ namespace wifip2pApi.Android
 
         private ServerAsyncTask serverTask;
 
+        private ClientAsyncTask clientTask;
+
         private NsdDiscoveryListener nsdDiscoveryListener;
 
         private NsdServiceInfo myServiceInfo;
@@ -107,7 +109,7 @@ namespace wifip2pApi.Android
                     serverTask.Cancel(true); // mark interruption
                     if (serverTask.IsListening)
                     {
-                        serverSocket.Close();    // interrupt the listening socket
+                        serverSocket.Close();    // will cause task to throw
                     }
                     // else let transfer finish 
                 }
@@ -347,8 +349,21 @@ namespace wifip2pApi.Android
 
         public void sendFile(InetAddress address, int port, List<string> files) {
 
-            ClientAsyncTask clientTask = new ClientAsyncTask(address, port, files, this);
+            clientTask = new ClientAsyncTask(address, port, files, this);
             clientTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor); // b/c already one asynctask running
+        }
+
+        // manually force stop transfer
+        public void interruptTransfer() {
+            if (clientTask != null && !clientTask.GetStatus().Equals(AsyncTask.Status.Finished)) {
+                // client task is running, stop it
+                clientTask.Cancel(true); // mark cancel, this will cause client task to end
+
+            } else if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished)) {
+                // server task is running, stop it
+                if (!serverTask.IsListening)
+                    serverTask.closeConnection(); // mark close connection, will stop transfer, return server to listening mode
+            }
         }
 
         private Error NsdFailureToError(NsdFailure f) {

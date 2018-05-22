@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 using System.Text;
@@ -55,6 +56,10 @@ namespace wifip2pApi.Android
 
                 // prepare file to send
                 foreach (string file in files) {
+                    if (IsCancelled) {
+                        throw new Java.Lang.Exception("Interrupted");
+                    }
+                        
                     if (System.IO.File.Exists(file) || System.IO.Directory.Exists(file)) {
                         // if it is a file or directory
                         sendOneFile(file, inputStream, outputStream, "");
@@ -69,6 +74,10 @@ namespace wifip2pApi.Android
                 return "Success";
 
 
+            } catch (TimeoutException e) {
+              // sendOneFile read timeout
+                Log.Info(id, "Exception caught: " + e.Message);
+                return "timed out";
             } catch (Java.Lang.Exception e) {
                 Log.Info(id, "Exception caught: " + e.Message);
                 return "failed";
@@ -84,7 +93,6 @@ namespace wifip2pApi.Android
 					}
 				}
             }
-
         }
 
         private void sendOneFile(string file, DataInputStream inputStream, DataOutputStream outputStream, string relativePath) {
@@ -103,14 +111,29 @@ namespace wifip2pApi.Android
                 byte[] sizeData = BitConverter.GetBytes(name.LongLength);
                 outputStream.Write(sizeData, 0, sizeof(long));
 
+                if (IsCancelled)
+                {
+                    throw new Java.Lang.Exception("Interrupted");
+                }
+
                 // 1.2 send file name
                 Log.Debug(id, "Sending file name to server");
                 outputStream.Write(name, 0, name.Length);
+
+                if (IsCancelled)
+                {
+                    throw new Java.Lang.Exception("Interrupted");
+                }
 
                 // 1.3 send size of file as a 64-bit (8 bytes) long integer
                 Log.Info(id, "Sending file size to server");
                 sizeData = BitConverter.GetBytes(filestream.Length);
                 outputStream.Write(sizeData, 0, sizeof(long));
+
+                if (IsCancelled)
+                {
+                    throw new Java.Lang.Exception("Interrupted");
+                }
 
                 // 1.4 send file
                 Log.Info(id, "Sending file to server");
@@ -120,6 +143,12 @@ namespace wifip2pApi.Android
 
                 do
                 {
+                    if (IsCancelled)
+                    {
+                        filestream.Close();
+                        throw new Java.Lang.Exception("Interrupted");
+                    }
+
                     int r = 65936;
                     if (bytesToRead < 65936)
                         r = bytesToRead;
@@ -139,25 +168,20 @@ namespace wifip2pApi.Android
                 // wait for client's response
                 Log.Info(id, "Waiting to hear from server");
 
-                // wait till data available or timed out
-                int elapsed = 0;
-                while (inputStream.Available() == 0 && elapsed < 7000)
+                if (IsCancelled)
                 {
-                    Java.Lang.Thread.Sleep(1000);
-                    elapsed += 1000;
+                    throw new Java.Lang.Exception("Interrupted");
                 }
 
-                // if timed out
-                if (elapsed >= 7000)
+                // wait till data available or timed out
+                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                if (read == -1)
                 {
+                    // timed out
                     Log.Info(id, "Wait timed out. Give up.");
-                    //break;
-                    return;
+                    throw new TimeoutException("read timeout");
                 }
-                else
-                { // receive
-                    inputStream.Read(buf, 0, sizeof(long));
-                }
+ 
             } else {
                 // path is a directory
                 string[] children = Directory.GetFileSystemEntries(file);
@@ -176,9 +200,32 @@ namespace wifip2pApi.Android
 			base.OnProgressUpdate(values);
 		}
 
+        protected override void OnCancelled()
+        {
+            Log.Debug(id, "Client Task Canceled");
+            taskListener.OnDisconnected(false);
+            base.OnCancelled();
+        }
+
 		protected override void OnPostExecute(Java.Lang.Object result)
         {
             taskListener.OnDisconnected(false);
+        }
+
+        private int readInputStreamWithTimeout(DataInputStream inputstream, byte[] buffer, int offset, int len, int timeoutMillis)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            stopwatch.Start();
+            while (inputstream.Available() <= 0)
+            {
+                if (stopwatch.ElapsedMilliseconds >= timeoutMillis)
+                {
+                    // timed out
+                    return -1;
+                }
+            }
+            int read = inputstream.Read(buffer, offset, len);
+            return read;
         }
     }
 }
