@@ -29,7 +29,7 @@ namespace wifip2pApi.Android
 
         private ITaskProgress taskListener;
 
-        private bool closeConnectionRequested = false;
+        public bool closeConnectionRequested = false;
 
         public ServerAsyncTask(ServerSocket serverSocket, Java.IO.File directory, ITaskProgress taskListener)
         {
