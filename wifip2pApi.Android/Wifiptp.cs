@@ -31,13 +31,16 @@ namespace wifip2pApi.Android
 
         private NsdManager nsdManager;
 
-        private ServerSocket serverSocket;
+        //private ServerSocket serverSocket;
 
-        private int port;
+        private ServerService serverService;
+
+        private ServiceBindingCallback serviceBindingCallback;
 
         private NsdRegistrationListener nsdRegistrationListener;
 
-        private ServerAsyncTask serverTask;
+        //private ServerAsyncTask serverTask;
+
 
         private ClientAsyncTask clientTask;
 
@@ -73,6 +76,8 @@ namespace wifip2pApi.Android
             NoWifi, NsdNotRegistered, AlreadyActive, InternalError, FailureMaxLimit, Other
         };
 
+
+
         public Wifiptp(string service, Context context, StatusChangedListener listener)
         {
             // Use bluetooth name for device name
@@ -85,12 +90,32 @@ namespace wifip2pApi.Android
             this.statusListener = listener;
             nsdManager = (NsdManager)context.GetSystemService(Context.NsdService);
 
+            // server service binding callback
+            serviceBindingCallback = new ServiceBindingCallback((ComponentName name, IBinder ibinder) => {
+                // connected
+                ServerServiceBinder binder = (ServerServiceBinder)ibinder;
+                serverService = binder.GetServerService();
+
+            }, (ComponentName name) => {
+                // disconnected
+                serverService = null;
+            });
+
+            // start server service
+            startServerService();
+
             // init registration listener
             nsdRegistrationListener = new NsdRegistrationListener((NsdServiceInfo info) =>
             {
                 // start server task, this will be listener for incoming connection
-                serverTask = new ServerAsyncTask(serverSocket, context.GetExternalFilesDir(null), this);
-                serverTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor);
+                //serverTask = new ServerAsyncTask(serverSocket, context.GetExternalFilesDir(null), this);
+                //serverTask.ExecuteOnExecutor(AsyncTask.ThreadPoolExecutor);
+                //Intent serviceIntent = new Intent(context, typeof(ServerService));
+                //context.StartService(serviceIntent);
+
+                //// bind context to server service
+                //Intent bindIntent = new Intent(context, typeof(ServerService));
+                //context.BindService(bindIntent, serviceBindingCallback, Bind.None);
 
                 // service registered
                 myServiceInfo = info;
@@ -101,18 +126,19 @@ namespace wifip2pApi.Android
             {
 
                 // socket could be 1) listening 2) transfering files
-                if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished))
-                {
-                    // must keep these two line in this sequence
-                    // if socket is just listening, close the socket and handle onCanceled
-                    // else if files are being transfered, wait until task reaches the end to handle onCanceled
-                    serverTask.Cancel(true); // mark interruption
-                    if (serverTask.IsListening)
-                    {
-                        serverSocket.Close();    // will cause task to throw
-                    }
-                    // else let transfer finish 
-                }
+                //if (serverService != null)
+                //{
+                //    // must keep these two line in this sequence
+                //    // if socket is just listening, close the socket and handle onCanceled
+                //    // else if files are being transfered, wait until task reaches the end to handle onCanceled
+                //    if (serverService.IsListening)
+                //    {
+                //        serverService.StopSelf();
+                //    } else {
+                //        serverService.killService();
+                //    }
+                //    // else let transfer finish 
+                //}
 
                 // service unregistered
                 myServiceInfo = null;
@@ -203,6 +229,7 @@ namespace wifip2pApi.Android
                 if (networkId != -1)
                 {
                     wifiStatus = WifiStatus.Connected;
+                    startServerService();
 
                 }
                 else
@@ -228,13 +255,15 @@ namespace wifip2pApi.Android
                     }
 
                     // assuming socket disconnects when WIFI is disconnected
-                    if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished))
+                    if (serverService != null)
                     {
                         // must keep these two line in this sequence
                         // if socket is just listening, close the socket and handle onCanceled
                         // else if files are being transfered, wait until task reaches the end to handle onCanceled
-                        serverTask.Cancel(true); // mark interruption
-                        serverSocket.Close(); // socket may already be closed?
+                        //serverService.killService(); // mark interruption
+                        //serverSocket.Close(); // socket may already be closed?
+
+                        stopServerService(false);
                     }
 
                     // client task should automatically end when socket exception is caught
@@ -248,6 +277,31 @@ namespace wifip2pApi.Android
 
             });
             context.RegisterReceiver(receiver, filter);
+
+            // listen to server updates
+            IntentFilter filter1 = new IntentFilter();
+            filter1.AddAction(ServerBroadcastReceiver.ACTION_CONNECTED);
+            filter1.AddAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
+            filter1.AddAction(ServerBroadcastReceiver.ACTION_FILE_RECEIVED);
+            filter1.AddAction(ServerBroadcastReceiver.ACTION_STATUS_MESSAGE);
+            ServerBroadcastReceiver receiver1 = new ServerBroadcastReceiver(() =>
+            {
+                // connected
+                statusListener.Connected(true);
+            }, () =>
+            {
+                // disconnected
+                statusListener.Disconnected(true);
+            }, () =>
+            {
+                // file received
+                statusListener.FilesReceived();
+            }, (string message) =>
+            {
+                // status message
+                statusListener.UpdateStatusMessage(message);
+            });
+            context.RegisterReceiver(receiver1, filter1);
         }
 
         public SearchStatus getSearchStatus() {
@@ -264,15 +318,11 @@ namespace wifip2pApi.Android
                 // if NSD is not registered & wifi is connected
                 if (nsdStatus == NsdStatus.Unregistered && wifiStatus == WifiStatus.Connected) {
 
-                    // Initialize a server socket on the next available port.
-                    serverSocket = new ServerSocket(0);
-                    port = serverSocket.LocalPort;
-
                     // register service
                     NsdServiceInfo serviceInfo = new NsdServiceInfo();
                     serviceInfo.ServiceName = serviceName;
                     serviceInfo.ServiceType = serviceType;
-                    serviceInfo.Port = port;
+                    serviceInfo.Port = serverService.Port;
 
                     nsdStatus = NsdStatus.Registering;
                     nsdManager.RegisterService(serviceInfo, NsdProtocol.DnsSd, nsdRegistrationListener);
@@ -359,10 +409,25 @@ namespace wifip2pApi.Android
                 // client task is running, stop it
                 clientTask.Cancel(true); // mark cancel, this will cause client task to end
 
-            } else if (serverTask != null && !serverTask.GetStatus().Equals(AsyncTask.Status.Finished)) {
+            } else if (serverService != null) {
                 // server task is running, stop it
-                if (!serverTask.IsListening)
-                    serverTask.closeConnection(); // mark close connection, will stop transfer, return server to listening mode
+                if (!serverService.IsListening)
+                    serverService.closeConnection(); // mark close connection, will stop transfer, return server to listening mode
+            }
+        }
+
+        public void shutdown() {
+            if (clientTask != null && !clientTask.GetStatus().Equals(AsyncTask.Status.Finished))
+            {
+                // client task is running, stop it
+                clientTask.Cancel(true); // mark cancel, this will cause client task to end
+
+            }
+            else if (serverService != null)
+            {
+                // server task is running, stop it
+                if (!serverService.IsListening)
+                    serverService.stopService(true);
             }
         }
 
@@ -395,6 +460,45 @@ namespace wifip2pApi.Android
         public void OnStatusUpdate(string message)
         {
             statusListener.UpdateStatusMessage(message);
+        }
+
+        private void startServerService() {
+            
+            Intent serviceIntent = new Intent(context, typeof(ServerService));
+            string dir = context.GetExternalFilesDir(null).AbsolutePath;
+            serviceIntent.PutExtra(ServerService.EXTRA_FILE_DIR, dir);
+            context.StartService(serviceIntent);
+
+            // bind context to server service
+            Intent bindIntent = new Intent(context, typeof(ServerService));
+            context.BindService(bindIntent, serviceBindingCallback, Bind.None);
+        }
+
+        private void stopServerService(bool finishTransfer) {
+            serverService.stopService(finishTransfer);
+        }
+
+    }
+
+    public class ServiceBindingCallback : Java.Lang.Object, IServiceConnection {
+
+        private Action<ComponentName, IBinder> connected;
+
+        private Action<ComponentName> disconnected;
+
+        public ServiceBindingCallback(Action<ComponentName, IBinder> connected, Action<ComponentName> disconnected) {
+            this.connected = connected;
+            this.disconnected = disconnected;
+        }
+
+        public void OnServiceConnected(ComponentName name, IBinder service)
+        {
+            connected(name, service);
+        }
+
+        public void OnServiceDisconnected(ComponentName name)
+        {
+            disconnected(name);
         }
     }
 

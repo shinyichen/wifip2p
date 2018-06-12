@@ -49,6 +49,8 @@
     <Compile Include="UIUtils.cs" />
     <Compile Include="WiFiBroadcastReceiver.cs" />
     <Compile Include="Wifiptp.cs" />
+    <Compile Include="ServerService.cs" />
+    <Compile Include="ServerBroadcastReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
