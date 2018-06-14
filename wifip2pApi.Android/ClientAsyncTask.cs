@@ -30,6 +30,21 @@ namespace wifip2pApi.Android
 
         private byte[] buf = new byte[65936];
 
+        private bool closeConnectionImmediately = false;
+
+        // TODO close connection even if file is not complete
+        public void CloseConnectionImmediately() {
+            closeConnectionImmediately = true;
+            Cancel(true);
+        }
+
+
+        // TODO close connection immediately after finishing the current file
+        public void CloseConnectionGracefully() {
+            Cancel(true);
+        }
+
+
         public ClientAsyncTask(InetAddress address, int port, List<string> files, ITaskProgress taskListener)
         {
             this.address = address;
@@ -143,7 +158,7 @@ namespace wifip2pApi.Android
 
                 do
                 {
-                    if (IsCancelled)
+                    if (closeConnectionImmediately)
                     {
                         filestream.Close();
                         throw new Java.Lang.Exception("Interrupted");

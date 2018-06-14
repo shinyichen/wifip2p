@@ -85,7 +85,7 @@ namespace wifip2pApi.Android
             Stopwatch stopwatch = null;
             while (size > 0)
             {
-                if (server.CloseConnectionRequested)
+                if (server.CloseConnectionImmediatelyRequested)
                     throw new Java.Lang.Exception("Interrupted");
 
                 if ((bytesRead = source.Read(buf, 0, bufSize)) > 0)

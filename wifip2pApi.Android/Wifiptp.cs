@@ -417,18 +417,10 @@ namespace wifip2pApi.Android
         }
 
         public void shutdown() {
-            if (clientTask != null && !clientTask.GetStatus().Equals(AsyncTask.Status.Finished))
-            {
-                // client task is running, stop it
-                clientTask.Cancel(true); // mark cancel, this will cause client task to end
-
-            }
-            else if (serverService != null)
-            {
-                // server task is running, stop it
-                if (!serverService.IsListening)
-                    serverService.stopService(true);
-            }
+            // let client finishes itself
+            // need to make server sevice stop immediately after task is finished
+            if (serverService != null)
+                serverService.stopService(true);
         }
 
         private Error NsdFailureToError(NsdFailure f) {

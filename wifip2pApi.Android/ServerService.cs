@@ -51,28 +51,35 @@ namespace wifip2pApi.Android
             }
         }
 
-        private bool closeConnectionRequested = false;
+        private bool closeConnectionImmediately = false;
 
-        public void closeConnection() {
-            closeConnectionRequested = true;
+        public bool CloseConnectionImmediatelyRequested {
+            get {
+                return closeConnectionImmediately;
+            }
         }
 
-        public bool CloseConnectionRequested {
-            get {
-                return closeConnectionRequested;
-            }
+        private bool closeConnectionGracefully = false;
+
+        // TODO force stop connection even if file is not complete
+        public void CloseConnectionImmediately() {
+            closeConnectionImmediately = true;
+        }
+
+        // TODO if duing file transfer, wait until file is done
+        public void CloseConnectionGracefully() {
+            closeConnectionGracefully = true;
         }
 
         private bool stopServiceRequested = false;
 
         // use this instead of stopService
         public void stopService(bool finishTransfer) {
-            if (isListening)
+            if (isListening || !finishTransfer)
                 serverSocket.Close();
-            else if (finishTransfer)
+            else // quit after current connection is finished
                 stopServiceRequested = true;
-            else
-                serverSocket.Close();
+            
         }
 
 		public override void OnCreate()
@@ -83,7 +90,8 @@ namespace wifip2pApi.Android
 		public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
         {
             // reset these parameters when start service
-            closeConnectionRequested = false;
+            closeConnectionImmediately = false;
+            closeConnectionGracefully = false;
             stopServiceRequested = false;
 
             if (!hasStarted)
@@ -100,178 +108,176 @@ namespace wifip2pApi.Android
                 {
                     
 
-                        Log.Debug(id, "Server Task started");
-                        Socket client = null;
-                        DataInputStream inputStream = null;
-                        DataOutputStream outputStream = null;
+                    Log.Debug(id, "Server Task started");
+                    Socket client = null;
+                    DataInputStream inputStream = null;
+                    DataOutputStream outputStream = null;
 
-                        Intent broadcastIntent;
+                    Intent broadcastIntent;
 
-                        while (true) // restarting socket after each connection
+                    while (true) // restarting socket after each connection
+                    {
+
+                        try
                         {
 
-                            try
-                            {
+                            Log.Debug(id, "Listening for connection");
+                            // wait for client connection
+                            isListening = true;
+                            client = serverSocket.Accept();
+                            //taskListener.OnConnected(true);
+                            broadcastIntent = new Intent();
+                            broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_CONNECTED);
+                            SendBroadcast(broadcastIntent);
+                            isListening = false;
 
-                                Log.Debug(id, "Listening for connection");
-                                // wait for client connection
-                                isListening = true;
-                                client = serverSocket.Accept();
-                                //taskListener.OnConnected(true);
-                                broadcastIntent = new Intent();
-                                broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_CONNECTED);
-                                SendBroadcast(broadcastIntent);
-                                isListening = false;
+                            Log.Info(id, "Received incoming connection ");
+                            outputStream = new DataOutputStream(client.OutputStream);
+                            inputStream = new DataInputStream(client.InputStream);
 
-                                Log.Info(id, "Received incoming connection ");
-                                outputStream = new DataOutputStream(client.OutputStream);
-                                inputStream = new DataInputStream(client.InputStream);
+                            while (true)
+                            { // receive files until got 0 (indicate end)
 
-                                while (true)
-                                { // receive files until got 0 (indicate end)
-
-                                    if (closeConnectionRequested)
-                                    {
-                                        throw new Java.Lang.Exception("Interrupted");
-                                    }
-
-                                    // 1.1 receive file name size 
-                                    Log.Debug(id, "Receiving file name size from client");
-                                    //inputStream.Read(buf, 0, sizeof(long));
-                                    int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
-                                    if (read == -1)
-                                    {
-                                        // read timed out
-                                        throw new TimeoutException();
-                                    }
-                                    int size = (int)BitConverter.ToInt64(buf, 0);
-
-                                    if (size == 0)
-                                    {// done
-                                        Log.Debug(id, "Got end signal from client. Ending");
-                                        broadcastIntent = new Intent();
-                                        broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
-                                        SendBroadcast(broadcastIntent);
-                                        break;
-                                    }
-
-                                    if (closeConnectionRequested)
-                                    {
-                                        throw new Java.Lang.Exception("Interrupted");
-                                    }
-
-                                    // 1.2 receive file name
-                                    Log.Debug(id, "Receiving file name from client");
-                                    byte[] name = new byte[size];
-                                    //inputStream.Read(name, 0, size);
-                                    readInputStreamWithTimeout(inputStream, name, 0, size, 2000);
-                                    if (read == -1)
-                                    {
-                                        // read timed out
-                                        throw new TimeoutException();
-                                    }
-                                    string filename = Encoding.Default.GetString(name); // with relative path
-
-                                    // 1.3 receive file size (as long) from client
-                                    //inputStream.Read(buf, 0, sizeof(long));
-                                    readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
-                                    if (read == -1)
-                                    {
-                                        // read timed out
-                                        throw new TimeoutException();
-                                    }
-                                    size = (int)BitConverter.ToInt64(buf, 0);
-
-                                    Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
-
-                                    if (closeConnectionRequested)
-                                    {
-                                        throw new Java.Lang.Exception("Interrupted");
-                                    }
-
-                                    // create path directory if needed
-                                    FileInfo fileInfo = new FileInfo(fileDirectory + "/" + filename);
-                                    fileInfo.Directory.Create();
-
-                                    // 1.4 receive image from client
-
-                                    if (size > 0)
-                                    {
-                                        Log.Info(id, "Receiving file from client");
-                                        publishProgress("Receiving " + filename);
-                                        outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
-                                        UIUtils.CopyStream(this, client.InputStream, outFileStream, size);
-                                        Log.Info(id, "Received file length: " + size);
-                                        outFileStream.Close();
-                                    }
-
-                                    // send 0 to signal received
-                                    byte[] sizeData = BitConverter.GetBytes((long)0);
-                                    outputStream.Write(sizeData, 0, sizeof(long));
-
-                                    if (closeConnectionRequested)
-                                    {
-                                        throw new Java.Lang.Exception("Interrupted");
-                                    }
-
-                                    // files received
-                                    publishProgress();
-
-                                    // wait for clinet response or timed out
-                                    Log.Info(id, "Wait for client to send next");
-
-                                } // while more files to receive
-
-
-
-
-                            }
-                            catch (SocketException)
-                            {
-                                // Socket closed (interrupt)
-                                if (client != null && !client.IsClosed)
-                                    client.Close();
-                                //taskListener.OnDisconnected(true);
-                                broadcastIntent = new Intent();
-                                broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
-                                SendBroadcast(broadcastIntent);
-
-                            }
-                            catch (TimeoutException)
-                            {
-                                // Util.CopyStream read timed out
-                                Log.Debug(id, "Read timed out, disconnect");
-                                if (client != null && !client.IsClosed)
-                                    client.Close();
-                                //taskListener.OnDisconnected(true);
-                                broadcastIntent = new Intent();
-                                broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
-                                SendBroadcast(broadcastIntent);
-                            }
-                            catch (Exception e)
-                            {
-                                // close connection requested, restart and go back to listening
-                                Log.Debug(id, e.Message);
-                                if (client != null && !client.IsClosed)
-                                    client.Close();
-                                //taskListener.OnDisconnected(true);
-                                broadcastIntent = new Intent();
-                                broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
-                                SendBroadcast(broadcastIntent);
-                                if (closeConnectionRequested)
+                                if (closeConnectionImmediately || closeConnectionGracefully)
                                 {
-                                    closeConnectionRequested = false; // go back to listening
+                                    throw new Java.Lang.Exception("Interrupted");
                                 }
-                            }
 
-                            // catch interruption if any or go back to listening
-                            if (stopServiceRequested)
-                            {
-                                StopSelf();
-                                break;
-                            }
+                                // 1.1 receive file name size 
+                                Log.Debug(id, "Receiving file name size from client");
+                                //inputStream.Read(buf, 0, sizeof(long));
+                                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                                if (read == -1)
+                                {
+                                    // read timed out
+                                    throw new TimeoutException();
+                                }
+                                int size = (int)BitConverter.ToInt64(buf, 0);
 
-                        } // while
+                                if (size == 0)
+                                {// done
+                                    Log.Debug(id, "Got end signal from client. Ending");
+                                    broadcastIntent = new Intent();
+                                    broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
+                                    SendBroadcast(broadcastIntent);
+                                    break;
+                                }
+
+                                if (closeConnectionImmediately || closeConnectionGracefully)
+                                {
+                                    throw new Java.Lang.Exception("Interrupted");
+                                }
+
+                                // 1.2 receive file name
+                                Log.Debug(id, "Receiving file name from client");
+                                byte[] name = new byte[size];
+                                //inputStream.Read(name, 0, size);
+                                readInputStreamWithTimeout(inputStream, name, 0, size, 2000);
+                                if (read == -1)
+                                {
+                                    // read timed out
+                                    throw new TimeoutException();
+                                }
+                                string filename = Encoding.Default.GetString(name); // with relative path
+
+                                // 1.3 receive file size (as long) from client
+                                //inputStream.Read(buf, 0, sizeof(long));
+                                readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                                if (read == -1)
+                                {
+                                    // read timed out
+                                    throw new TimeoutException();
+                                }
+                                size = (int)BitConverter.ToInt64(buf, 0);
+
+                                Log.Debug(id, "Receiving " + filename + ": " + size + " bytes");
+
+                                if (closeConnectionImmediately || closeConnectionGracefully)
+                                {
+                                    throw new Java.Lang.Exception("Interrupted");
+                                }
+
+                                // create path directory if needed
+                                FileInfo fileInfo = new FileInfo(fileDirectory + "/" + filename);
+                                fileInfo.Directory.Create();
+
+                                // 1.4 receive image from client
+
+                                if (size > 0)
+                                {
+                                    Log.Info(id, "Receiving file from client");
+                                    publishProgress("Receiving " + filename);
+                                    outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
+                                    UIUtils.CopyStream(this, client.InputStream, outFileStream, size);
+                                    Log.Info(id, "Received file length: " + size);
+                                    outFileStream.Close();
+                                }
+
+                                // send 0 to signal received
+                                byte[] sizeData = BitConverter.GetBytes((long)0);
+                                outputStream.Write(sizeData, 0, sizeof(long));
+
+                                if (closeConnectionImmediately || closeConnectionGracefully)
+                                {
+                                    throw new Java.Lang.Exception("Interrupted");
+                                }
+
+                                // files received
+                                publishProgress();
+
+                                // wait for clinet response or timed out
+                                Log.Info(id, "Wait for client to send next");
+
+                            } // while more files to receive
+
+
+
+
+                        }
+                        catch (SocketException)
+                        {
+                            // Socket closed (interrupt)
+                            if (client != null && !client.IsClosed)
+                                client.Close();
+                            //taskListener.OnDisconnected(true);
+                            broadcastIntent = new Intent();
+                            broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
+                            SendBroadcast(broadcastIntent);
+
+                        }
+                        catch (TimeoutException)
+                        {
+                            // Util.CopyStream read timed out
+                            Log.Debug(id, "Read timed out, disconnect");
+                            if (client != null && !client.IsClosed)
+                                client.Close();
+                            //taskListener.OnDisconnected(true);
+                            broadcastIntent = new Intent();
+                            broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
+                            SendBroadcast(broadcastIntent);
+                        }
+                        catch (Exception e)
+                        {
+                            // close connection requested, restart and go back to listening
+                            Log.Debug(id, e.Message);
+                            if (client != null && !client.IsClosed)
+                                client.Close();
+                            //taskListener.OnDisconnected(true);
+                            broadcastIntent = new Intent();
+                            broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
+                            SendBroadcast(broadcastIntent);
+                            closeConnectionImmediately = false;
+                            closeConnectionGracefully = false;
+                        }
+
+                        // catch interruption if any or go back to listening
+                        if (stopServiceRequested)
+                        {
+                            StopSelf();
+                            break;
+                        }
+
+                    } // while
 
                 }).Start();
 
