@@ -201,7 +201,7 @@ namespace wifip2pApi.Android
                                 FileInfo fileInfo = new FileInfo(fileDirectory + "/" + filename);
                                 fileInfo.Directory.Create();
 
-                                // 1.4 receive image from client
+                                // 1.4 receive file from client
 
                                 if (size > 0)
                                 {

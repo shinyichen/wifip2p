@@ -412,7 +412,7 @@ namespace wifip2pApi.Android
             } else if (serverService != null) {
                 // server task is running, stop it
                 if (!serverService.IsListening)
-                    serverService.closeConnection(); // mark close connection, will stop transfer, return server to listening mode
+                    serverService.CloseConnectionGracefully(); // mark close connection, will stop transfer, return server to listening mode
             }
         }
 
