@@ -21,6 +21,10 @@ namespace wifip2pApi.Android
 
         private string serviceType;
 
+        private WiFiBroadcastReceiver wifiBroadcastReceiver;
+
+        private ServerBroadcastReceiver serverBroadcastReceiver;
+
         private WifiStatus wifiStatus;
 
         private SearchStatus searchStatus = SearchStatus.Stopped;
@@ -210,7 +214,7 @@ namespace wifip2pApi.Android
             IntentFilter filter = new IntentFilter();
             filter.AddAction(WifiManager.WifiStateChangedAction);
             filter.AddAction(WifiManager.NetworkStateChangedAction);
-            WiFiBroadcastReceiver receiver = new WiFiBroadcastReceiver(() =>
+            wifiBroadcastReceiver = new WiFiBroadcastReceiver(() =>
             {
                 // enabling
             }, () =>
@@ -276,7 +280,7 @@ namespace wifip2pApi.Android
                 wifiStatus = WifiStatus.Disconnected;
 
             });
-            context.RegisterReceiver(receiver, filter);
+            context.RegisterReceiver(wifiBroadcastReceiver, filter);
 
             // listen to server updates
             IntentFilter filter1 = new IntentFilter();
@@ -284,7 +288,7 @@ namespace wifip2pApi.Android
             filter1.AddAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
             filter1.AddAction(ServerBroadcastReceiver.ACTION_FILE_RECEIVED);
             filter1.AddAction(ServerBroadcastReceiver.ACTION_STATUS_MESSAGE);
-            ServerBroadcastReceiver receiver1 = new ServerBroadcastReceiver(() =>
+            serverBroadcastReceiver = new ServerBroadcastReceiver(() =>
             {
                 // connected
                 statusListener.Connected(true);
@@ -301,7 +305,7 @@ namespace wifip2pApi.Android
                 // status message
                 statusListener.UpdateStatusMessage(message);
             });
-            context.RegisterReceiver(receiver1, filter1);
+            context.RegisterReceiver(serverBroadcastReceiver, filter1);
         }
 
         public SearchStatus getSearchStatus() {
@@ -407,12 +411,12 @@ namespace wifip2pApi.Android
         public void interruptTransfer() {
             if (clientTask != null && !clientTask.GetStatus().Equals(AsyncTask.Status.Finished)) {
                 // client task is running, stop it
-                clientTask.Cancel(true); // mark cancel, this will cause client task to end
+                clientTask.CloseConnectionImmediately();
 
             } else if (serverService != null) {
                 // server task is running, stop it
                 if (!serverService.IsListening)
-                    serverService.CloseConnectionGracefully(); // mark close connection, will stop transfer, return server to listening mode
+                    serverService.CloseConnectionImmediately(); // mark close connection, will stop transfer, return server to listening mode
             }
         }
 
@@ -421,6 +425,8 @@ namespace wifip2pApi.Android
             // need to make server sevice stop immediately after task is finished
             if (serverService != null)
                 serverService.stopService(true);
+            context.UnregisterReceiver(wifiBroadcastReceiver);
+            context.UnregisterReceiver(serverBroadcastReceiver);
         }
 
         private Error NsdFailureToError(NsdFailure f) {
