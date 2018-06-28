@@ -110,7 +110,7 @@ namespace wifip2pApi.Android
                         stopwatch = Stopwatch.StartNew();
                     else
                     {
-                        if (stopwatch.ElapsedMilliseconds > 2000)
+                        if (stopwatch.ElapsedMilliseconds > 5000)
                         {
                             // timeout
                             throw new TimeoutException("Read time out");

@@ -189,7 +189,7 @@ namespace wifip2pApi.Android
                 }
 
                 // wait till data available or timed out
-                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 5000);
                 if (read == -1)
                 {
                     // timed out

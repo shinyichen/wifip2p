@@ -76,7 +76,10 @@ namespace wifip2pApi.Android
         // use this instead of stopService
         public void stopService(bool finishTransfer) {
             if (isListening || !finishTransfer)
+            {
+                stopServiceRequested = true;
                 serverSocket.Close();
+            }
             else // quit after current connection is finished
                 stopServiceRequested = true;
             
@@ -146,7 +149,7 @@ namespace wifip2pApi.Android
                                 // 1.1 receive file name size 
                                 Log.Debug(id, "Receiving file name size from client");
                                 //inputStream.Read(buf, 0, sizeof(long));
-                                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                                int read = readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 5000);
                                 if (read == -1)
                                 {
                                     // read timed out
@@ -172,7 +175,7 @@ namespace wifip2pApi.Android
                                 Log.Debug(id, "Receiving file name from client");
                                 byte[] name = new byte[size];
                                 //inputStream.Read(name, 0, size);
-                                readInputStreamWithTimeout(inputStream, name, 0, size, 2000);
+                                readInputStreamWithTimeout(inputStream, name, 0, size, 5000);
                                 if (read == -1)
                                 {
                                     // read timed out
@@ -182,7 +185,7 @@ namespace wifip2pApi.Android
 
                                 // 1.3 receive file size (as long) from client
                                 //inputStream.Read(buf, 0, sizeof(long));
-                                readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 2000);
+                                readInputStreamWithTimeout(inputStream, buf, 0, sizeof(long), 5000);
                                 if (read == -1)
                                 {
                                     // read timed out
@@ -266,15 +269,20 @@ namespace wifip2pApi.Android
                             broadcastIntent = new Intent();
                             broadcastIntent.SetAction(ServerBroadcastReceiver.ACTION_DISCONNECTED);
                             SendBroadcast(broadcastIntent);
-                            closeConnectionImmediately = false;
-                            closeConnectionGracefully = false;
                         }
+
+                        outFileStream.Dispose();
 
                         // catch interruption if any or go back to listening
                         if (stopServiceRequested)
                         {
+                            Log.Debug(id, "Stopping Server Service");
                             StopSelf();
                             break;
+                        } else {
+                            // reset
+                            closeConnectionImmediately = false;
+                            closeConnectionGracefully = false;
                         }
 
                     } // while
