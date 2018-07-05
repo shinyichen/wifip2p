@@ -51,6 +51,8 @@
     <Compile Include="Wifiptp.cs" />
     <Compile Include="ServerService.cs" />
     <Compile Include="ServerBroadcastReceiver.cs" />
+    <Compile Include="ClientService.cs" />
+    <Compile Include="ClientBroadcastReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
