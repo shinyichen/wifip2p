@@ -271,7 +271,7 @@ namespace wifip2pApi.Android
                             SendBroadcast(broadcastIntent);
                         }
 
-                        if (outputStream != null)
+                        if (outFileStream != null)
                             outFileStream.Dispose();
 
                         // catch interruption if any or go back to listening
