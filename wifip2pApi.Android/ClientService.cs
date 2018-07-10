@@ -126,6 +126,8 @@ namespace wifip2pApi.Android
                     broadcastIntent.SetAction(ClientBroadcastReceiver.ACTION_DISCONNECTED);
                     SendBroadcast(broadcastIntent);
                 }
+
+                StopSelf();
                 
             }).Start();
 
