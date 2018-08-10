@@ -210,10 +210,18 @@ namespace wifip2pApi.Android
                                 {
                                     Log.Info(id, "Receiving file from client");
                                     publishProgress("Receiving " + filename);
-                                    outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
-                                    UIUtils.CopyStream(this, client.InputStream, outFileStream, size);
-                                    Log.Info(id, "Received file length: " + size);
-                                    outFileStream.Close();
+                                    try {
+                                        outFileStream = System.IO.File.Create(fileDirectory + "/" + filename);
+                                        UIUtils.CopyStream(this, client.InputStream, outFileStream, size);
+                                        Log.Info(id, "Received file length: " + size);
+                                        outFileStream.Close();
+                                    } catch (Exception e) {
+                                        // delete corrupted file
+                                        outFileStream.Close();
+                                        System.IO.File.Delete(fileDirectory + "/" + filename);
+                                        throw (e);
+                                    }
+
                                 }
 
                                 // send 0 to signal received
